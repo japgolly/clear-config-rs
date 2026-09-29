@@ -1,6 +1,6 @@
 demo:
 	cargo fmt --all
-	DEBUG=true VERBOSE=No ENV=dev cargo run --example demo
+	DEBUG=true VERBOSE=No ENV=dev PORT=3000 cargo run --example demo
 	ENV=local VERBOSE=maybe cargo run --example demo
 
 t: test

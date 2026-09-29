@@ -3,6 +3,7 @@ extern crate self as clear_config;
 mod parsing;
 
 use std::collections::HashMap;
+use std::fmt::Debug;
 
 pub use crate::parsing::*;
 pub use clear_config_derive::ConfigParser;
@@ -65,10 +66,43 @@ impl ConfigContext {
         }
     }
 
-    pub fn need<A: ConfigParser>(&mut self, key: &String) -> Option<A> {
-        self.keys_seen.insert(key.clone(), None);
+    fn lookup<A: ConfigParser>(
+        &mut self,
+        key: &String,
+        default: Option<String>,
+    ) -> Option<Option<A>> {
+        self.keys_seen.insert(key.clone(), default);
         match self.sources.iter().find_map(|src| src.get(key)) {
             Some(str) => match A::parse_config(str) {
+                Ok(a) => Some(Some(a)),
+                Err(msg) => {
+                    self.load_errors.push(LoadError {
+                        key: key.clone(),
+                        msg,
+                    });
+                    None
+                }
+            },
+            None => Some(None),
+        }
+    }
+
+    pub fn get<A: ConfigParser>(&mut self, key: &String) -> Option<Option<A>> {
+        self.lookup(key, None)
+    }
+
+    pub fn get_or_use<A: ConfigParser + Debug>(&mut self, key: &String, default: A) -> Option<A> {
+        match self.lookup(key, Some(format!("{:?}", default))) {
+            Some(Some(a)) => Some(a),
+            Some(None) => Some(default),
+            None => None,
+        }
+    }
+
+    pub fn get_or_parse<A: ConfigParser>(&mut self, key: &String, default: &str) -> Option<A> {
+        match self.lookup(key, Some(default.to_string())) {
+            Some(Some(a)) => Some(a),
+            Some(None) => match A::parse_config(default) {
                 Ok(a) => Some(a),
                 Err(msg) => {
                     self.load_errors.push(LoadError {
@@ -78,13 +112,21 @@ impl ConfigContext {
                     None
                 }
             },
-            None => {
+            None => None,
+        }
+    }
+
+    pub fn need<A: ConfigParser>(&mut self, key: &String) -> Option<A> {
+        match self.lookup(key, None) {
+            Some(Some(a)) => Some(a),
+            Some(None) => {
                 self.load_errors.push(LoadError {
                     key: key.clone(),
                     msg: ErrorMsg(String::from("not specified")),
                 });
                 None
             }
+            None => None,
         }
     }
 }
