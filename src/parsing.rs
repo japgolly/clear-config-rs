@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ErrorMsg(pub String);
 
 pub trait ConfigParser: Sized {
@@ -32,7 +32,7 @@ impl ConfigParser for bool {
     }
 }
 
-macro_rules! impl_via_parse {
+macro_rules! impl_via_str_parse {
     ($($t:ty),*) => {
         $(
             impl ConfigParser for $t {
@@ -44,6 +44,49 @@ macro_rules! impl_via_parse {
     };
 }
 
-impl_via_parse!(u8, u16, u32, u64, u128, usize);
-impl_via_parse!(i8, i16, i32, i64, i128, isize);
-impl_via_parse!(f32, f64, char);
+impl_via_str_parse!(u8, u16, u32, u64, u128, usize);
+impl_via_str_parse!(i8, i16, i32, i64, i128, isize);
+impl_via_str_parse!(f32, f64, char);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fmt::Debug;
+
+    fn assert_parses<A: ConfigParser + PartialEq + Debug>(str: &str, expect: A) {
+        let actual = A::parse_config(str);
+        assert_eq!(actual, Ok(expect));
+    }
+
+    #[test]
+    fn test_bool_true() {
+        assert_parses("1", true);
+        assert_parses("Y", true);
+        assert_parses("Yes", true);
+        assert_parses("ON", true);
+        assert_parses("T", true);
+        assert_parses("true", true);
+        assert_parses("enabled", true);
+    }
+
+    #[test]
+    fn test_bool_false() {
+        assert_parses("0", false);
+        assert_parses("N", false);
+        assert_parses("No", false);
+        assert_parses("OFF", false);
+        assert_parses("F", false);
+        assert_parses("false", false);
+        assert_parses("disabled", false);
+    }
+
+    #[test]
+    fn test_u8() {
+        assert_parses::<u8>("123", 123);
+    }
+
+    #[test]
+    fn test_u16() {
+        assert_parses::<u16>("123", 123);
+    }
+}
