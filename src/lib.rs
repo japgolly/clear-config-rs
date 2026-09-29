@@ -1,19 +1,19 @@
-use std::collections::HashMap;
-use std::sync::LazyLock;
+mod parsing;
 
-use regex::Regex;
+use std::collections::HashMap;
+
+use crate::parsing::*;
 
 pub trait ConfigDef {
-    fn load(ctx: &mut ConfigContext) -> Result<Self, Vec<ErrorMsg>>
+    fn load(ctx: &mut ConfigContext) -> Result<Self, Vec<LoadError>>
     where
         Self: Sized;
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
-pub struct ErrorMsg {
+pub struct LoadError {
     pub key: String,
-    pub msg: String,
+    pub msg: ErrorMsg,
 }
 
 pub struct ConfigSource {
@@ -53,41 +53,18 @@ impl ConfigContext {
         }
     }
 
-    pub fn need_string(&mut self, key: &String) -> Result<&String, ErrorMsg> {
+    pub fn need<A: ConfigParser>(&mut self, key: &String) -> Result<A, LoadError> {
         self.keys_seen.insert(key.clone(), None);
-        let v = self.sources.iter().find_map(|src| src.get(key));
-        v.ok_or_else(|| ErrorMsg {
-            key: key.clone(),
-            msg: String::from("not specified"),
-        })
-    }
-
-    pub fn need_bool(&mut self, key: &String) -> Result<bool, ErrorMsg> {
-        static REGEX_TRUE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"(?i)^(?:t(?:rue)?|y(?:es)?|1|on|enabled?)$").unwrap());
-        static REGEX_FALSE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"(?i)^(?:f(?:alse)?|n(?:o)?|0|off|disabled?)$").unwrap());
-
-        let s = self.need_string(key)?;
-        let str = s.as_str();
-        if REGEX_TRUE.is_match(str) {
-            Ok(true)
-        } else if REGEX_FALSE.is_match(str) {
-            Ok(false)
-        } else {
-            Err(ErrorMsg {
+        match self.sources.iter().find_map(|src| src.get(key)) {
+            Some(str) => A::parse_config(str).map_err(|msg| LoadError {
                 key: key.clone(),
-                msg: format!("{s:?} is not a valid bool"),
-            })
+                msg,
+            }),
+            None => Err(LoadError {
+                key: key.clone(),
+                msg: ErrorMsg(String::from("not specified")),
+            }),
         }
-    }
-
-    pub fn need_u16(&mut self, key: &String) -> Result<u16, ErrorMsg> {
-        let s = self.need_string(key)?;
-        s.parse::<u16>().map_err(|_| ErrorMsg {
-            key: key.clone(),
-            msg: format!("{s:?} is not a valid u16"),
-        })
     }
 }
 

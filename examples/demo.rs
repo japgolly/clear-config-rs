@@ -7,6 +7,10 @@ use clear_config::*;
 //     port: u16,
 // }
 
+// enum Environment {
+//     Dev, Staging, Prod
+// }
+
 #[allow(dead_code)]
 #[derive(Debug)]
 struct AppConfig {
@@ -16,16 +20,16 @@ struct AppConfig {
 }
 
 impl ConfigDef for AppConfig {
-    fn load(ctx: &mut ConfigContext) -> Result<Self, Vec<ErrorMsg>> {
-        let mut errors: Vec<ErrorMsg> = Vec::new();
-        let debug = match ctx.need_bool(&String::from("DEBUG")) {
+    fn load(ctx: &mut ConfigContext) -> Result<Self, Vec<LoadError>> {
+        let mut errors: Vec<LoadError> = Vec::new();
+        let debug = match ctx.need::<bool>(&String::from("DEBUG")) {
             Ok(v) => Some(v),
             Err(e) => {
                 errors.push(e);
                 None
             }
         };
-        let verbose = match ctx.need_bool(&String::from("VERBOSE")) {
+        let verbose = match ctx.need::<bool>(&String::from("VERBOSE")) {
             Ok(v) => Some(v),
             Err(e) => {
                 errors.push(e);
