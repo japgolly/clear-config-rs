@@ -1,7 +1,7 @@
 demo:
 	cargo fmt
-	DEBUG=true VERBOSE=false cargo run --example demo
-	cargo run --example demo
+	DEBUG=true VERBOSE=No cargo run --example demo
+	VERBOSE=maybe cargo run --example demo
 
 t: test
 test:

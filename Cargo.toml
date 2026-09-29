@@ -8,3 +8,4 @@ exclude = ["examples/**"]
 name = "clear_config"
 
 [dependencies]
+regex = "1.13.1"

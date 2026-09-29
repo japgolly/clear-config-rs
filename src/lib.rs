@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use std::sync::LazyLock;
+
+use regex::Regex;
 
 pub trait ConfigDef {
     fn load(ctx: &mut ConfigContext) -> Result<Self, Vec<ErrorMsg>>
@@ -60,12 +63,23 @@ impl ConfigContext {
     }
 
     pub fn need_bool(&mut self, key: &String) -> Result<bool, ErrorMsg> {
+        static REGEX_TRUE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"(?i)^(?:t(?:rue)?|y(?:es)?|1|on|enabled?)$").unwrap());
+        static REGEX_FALSE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"(?i)^(?:f(?:alse)?|n(?:o)?|0|off|disabled?)$").unwrap());
+
         let s = self.need_string(key)?;
-        // todo: use regex
-        s.parse::<bool>().map_err(|_| ErrorMsg {
-            key: key.clone(),
-            msg: format!("{s:?} is not a valid bool"),
-        })
+        let str = s.as_str();
+        if REGEX_TRUE.is_match(str) {
+            Ok(true)
+        } else if REGEX_FALSE.is_match(str) {
+            Ok(false)
+        } else {
+            Err(ErrorMsg {
+                key: key.clone(),
+                msg: format!("{s:?} is not a valid bool"),
+            })
+        }
     }
 
     pub fn need_u16(&mut self, key: &String) -> Result<u16, ErrorMsg> {
