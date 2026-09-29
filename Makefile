@@ -1,8 +1,9 @@
 demo:
-	cargo fmt
-	DEBUG=true VERBOSE=No cargo run --example demo
-	VERBOSE=maybe cargo run --example demo
+	cargo fmt --all
+	DEBUG=true VERBOSE=No ENV=dev cargo run --example demo
+	ENV=local VERBOSE=maybe cargo run --example demo
 
 t: test
 test:
+	cargo fmt --all
 	cargo test --lib

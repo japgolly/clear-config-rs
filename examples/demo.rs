@@ -7,9 +7,12 @@ use clear_config::*;
 //     port: u16,
 // }
 
-// enum Environment {
-//     Dev, Staging, Prod
-// }
+#[derive(ConfigParser, Debug)]
+enum Environment {
+    Dev,
+    Staging,
+    Prod,
+}
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -17,6 +20,7 @@ struct AppConfig {
     // server: ServerConfig,
     debug: bool,
     verbose: bool,
+    env: Environment,
 }
 
 impl ConfigDef for AppConfig {
@@ -36,10 +40,22 @@ impl ConfigDef for AppConfig {
                 None
             }
         };
+        let env = match ctx.need::<Environment>(&String::from("ENV")) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                errors.push(e);
+                None
+            }
+        };
         if errors.is_empty() {
             let debug = debug.unwrap();
             let verbose = verbose.unwrap();
-            Ok(AppConfig { debug, verbose })
+            let env = env.unwrap();
+            Ok(AppConfig {
+                debug,
+                verbose,
+                env,
+            })
         } else {
             Err(errors)
         }

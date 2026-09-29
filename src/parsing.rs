@@ -51,11 +51,23 @@ impl_via_str_parse!(f32, f64, char);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clear_config_derive::ConfigParser;
     use std::fmt::Debug;
+
+    #[derive(ConfigParser, PartialEq, Debug)]
+    enum Env {
+        Dev,
+        Prod,
+    }
 
     fn assert_parses<A: ConfigParser + PartialEq + Debug>(str: &str, expect: A) {
         let actual = A::parse_config(str);
         assert_eq!(actual, Ok(expect));
+    }
+
+    fn assert_parse_fails<A: ConfigParser + PartialEq + Debug>(str: &str, expect: &str) {
+        let actual = A::parse_config(str);
+        assert_eq!(actual, Err(ErrorMsg(expect.to_string())));
     }
 
     #[test]
@@ -88,5 +100,21 @@ mod tests {
     #[test]
     fn test_u16() {
         assert_parses::<u16>("123", 123);
+    }
+
+    #[test]
+    fn test_enum_ok() {
+        assert_parses("dev", Env::Dev);
+        assert_parses("Dev", Env::Dev);
+        assert_parses("prod", Env::Prod);
+        assert_parses("PROD", Env::Prod);
+    }
+
+    #[test]
+    fn test_enum_ko() {
+        assert_parse_fails::<Env>(
+            "what",
+            "\"what\" is not a valid Env (expected one of: Dev, Prod)",
+        );
     }
 }

@@ -1,8 +1,11 @@
+extern crate self as clear_config;
+
 mod parsing;
 
 use std::collections::HashMap;
 
-use crate::parsing::*;
+pub use crate::parsing::*;
+pub use clear_config_derive::ConfigParser;
 
 pub trait ConfigDef {
     fn load(ctx: &mut ConfigContext) -> Result<Self, Vec<LoadError>>
@@ -66,15 +69,4 @@ impl ConfigContext {
             }),
         }
     }
-}
-
-#[cfg(test)]
-mod tests {
-    // use super::*;
-
-    // #[test]
-    // fn it_works() {
-    //     let result = add(2, 2);
-    //     assert_eq!(result, 4);
-    // }
 }
