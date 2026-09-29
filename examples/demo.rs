@@ -52,5 +52,6 @@ impl ConfigDef for AppConfig {
 fn main() {
     let mut ctx = ConfigContext::default();
     let result = ctx.load::<AppConfig>();
+    println!("{}", ctx.report_used());
     println!("{:?}", result);
 }

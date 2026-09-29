@@ -8,5 +8,6 @@ exclude = ["examples/**"]
 name = "clear_config"
 
 [dependencies]
-regex = "1.13.1"
 clear-config-derive = { path = "clear-config-derive", version = "0.1.0" }
+ascii_table_rs = "1.0.2"
+regex = "1.13.1"

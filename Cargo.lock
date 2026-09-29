@@ -12,6 +12,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ascii_table_rs"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fab932c2aa49ea41adfc3b6e5aa8ad9b50685ad0e144306bfcfa78bf6c8bb765"
+dependencies = [
+ "strip-ansi-escapes",
+ "unicode-width",
+]
+
+[[package]]
 name = "clear-config-derive"
 version = "0.1.0"
 dependencies = [
@@ -24,6 +34,7 @@ dependencies = [
 name = "clear-config-rs"
 version = "0.1.0"
 dependencies = [
+ "ascii_table_rs",
  "clear-config-derive",
  "regex",
 ]
@@ -82,6 +93,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
+name = "strip-ansi-escapes"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a8f8038e7e7969abb3f1b7c2a811225e9296da208539e0f79c5251d6cac0025"
+dependencies = [
+ "vte",
+]
+
+[[package]]
 name = "syn"
 version = "2.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -97,3 +117,18 @@ name = "unicode-ident"
 version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954"
+
+[[package]]
+name = "unicode-width"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
+
+[[package]]
+name = "vte"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "231fdcd7ef3037e8330d8e17e61011a2c244126acc0a982f4040ac3f9f0bc077"
+dependencies = [
+ "memchr",
+]

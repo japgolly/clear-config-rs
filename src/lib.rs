@@ -7,7 +7,7 @@ pub use crate::parsing::*;
 pub use crate::source::*;
 pub use clear_config_derive::ConfigParser;
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt::Debug;
 
 pub trait ConfigDef {
@@ -112,5 +112,40 @@ impl ConfigContext {
             }
             None => None,
         }
+    }
+
+    pub fn report_used(&self) -> String {
+        use ascii_table_rs::{AsciiTable, CellValue};
+
+        let mut table = AsciiTable::new("Config Report");
+        {
+            let mut headers = Vec::new();
+            headers.push("Key");
+            for s in &self.sources {
+                headers.push(s.name.as_str());
+            }
+            headers.push("Default");
+            table.set_headers(headers);
+        }
+
+        let all_keys: BTreeSet<&String> = self.keys_seen.keys().collect();
+
+        for key in all_keys {
+            let mut row = Vec::new();
+
+            row.push(CellValue::Str(key.to_string()));
+
+            for s in &self.sources {
+                let value = s.get(key).cloned().unwrap_or_default();
+                row.push(CellValue::Str(value));
+            }
+
+            let default = self.keys_seen.get(key).unwrap().clone().unwrap_or_default();
+            row.push(CellValue::Str(default));
+
+            table.add_row(row);
+        }
+
+        table.render_to_string()
     }
 }
