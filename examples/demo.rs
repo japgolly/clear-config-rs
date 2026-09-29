@@ -38,7 +38,7 @@ impl ConfigDef for AppConfig {
     fn load(ctx: &mut ConfigContext) -> Option<Self> {
         let server = ServerConfig::load(ctx);
         let debug = ctx.need::<bool>(&String::from("DEBUG"));
-        let verbose = ctx.need::<bool>(&String::from("VERBOSE"));
+        let verbose = ctx.get_or_use::<bool>(&String::from("VERBOSE"), false);
         let env = ctx.need::<Environment>(&String::from("ENV"));
         Some(AppConfig {
             server: server?,
@@ -53,5 +53,8 @@ fn main() {
     let mut ctx = ConfigContext::default();
     let result = ctx.load::<AppConfig>();
     println!("{}", ctx.report_used());
-    println!("{:?}", result);
+    match result {
+        Ok(cfg) => println!("{:?}", cfg),
+        Err(e) => println!("{}", e),
+    }
 }

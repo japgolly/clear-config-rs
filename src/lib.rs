@@ -8,7 +8,7 @@ pub use crate::source::*;
 pub use clear_config_derive::ConfigParser;
 
 use std::collections::{BTreeSet, HashMap};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 pub trait ConfigDef {
     fn load(ctx: &mut ConfigContext) -> Option<Self>
@@ -20,6 +20,24 @@ pub trait ConfigDef {
 pub struct LoadError {
     pub key: String,
     pub msg: ErrorMsg,
+}
+
+#[derive(Clone, Debug)]
+pub struct LoadErrors(Vec<LoadError>);
+
+impl Display for LoadErrors {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Config errors:").unwrap();
+        let sorted: BTreeSet<String> = self
+            .0
+            .iter()
+            .map(|e| format!("{}: {}", e.key, e.msg.0))
+            .collect();
+        for s in sorted {
+            write!(f, "\n  * {}", s).unwrap();
+        }
+        Ok(())
+    }
 }
 
 pub struct ConfigContext {
@@ -43,10 +61,10 @@ impl ConfigContext {
         }
     }
 
-    pub fn load<A: ConfigDef>(&mut self) -> Result<A, Vec<LoadError>> {
+    pub fn load<A: ConfigDef>(&mut self) -> Result<A, LoadErrors> {
         match A::load(self) {
             Some(a) if self.load_errors.is_empty() => Ok(a),
-            _ => Err(self.load_errors.clone()),
+            _ => Err(LoadErrors(self.load_errors.clone())),
         }
     }
 
@@ -146,6 +164,6 @@ impl ConfigContext {
             table.add_row(row);
         }
 
-        table.render_to_string()
+        table.render_to_string().trim().to_string()
     }
 }
