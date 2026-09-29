@@ -1,12 +1,14 @@
 extern crate self as clear_config;
 
 mod parsing;
+mod source;
+
+pub use crate::parsing::*;
+pub use crate::source::*;
+pub use clear_config_derive::ConfigParser;
 
 use std::collections::HashMap;
 use std::fmt::Debug;
-
-pub use crate::parsing::*;
-pub use clear_config_derive::ConfigParser;
 
 pub trait ConfigDef {
     fn load(ctx: &mut ConfigContext) -> Option<Self>
@@ -18,24 +20,6 @@ pub trait ConfigDef {
 pub struct LoadError {
     pub key: String,
     pub msg: ErrorMsg,
-}
-
-pub struct ConfigSource {
-    pub name: String,
-    pub data: HashMap<String, String>,
-}
-
-impl ConfigSource {
-    pub fn env() -> Self {
-        ConfigSource {
-            name: String::from("Environment"),
-            data: std::env::vars().collect(),
-        }
-    }
-
-    pub fn get(&self, key: &String) -> Option<&String> {
-        self.data.get(key)
-    }
 }
 
 pub struct ConfigContext {
