@@ -2,10 +2,10 @@ use clear_config::*;
 
 #[allow(dead_code)]
 #[derive(ConfigDef, Debug)]
+#[config(key_prefix = "SERVER_")]
 struct ServerConfig {
-    #[config(key = "SERVER_HOST")]
     host: Option<String>,
-    #[config(key = "SERVER_PORT", default = "8080")]
+    #[config(default = "8080")]
     port: u16,
 }
 

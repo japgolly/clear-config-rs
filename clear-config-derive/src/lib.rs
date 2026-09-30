@@ -85,6 +85,27 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
         .into();
     };
 
+    // Parse struct-level attributes (e.g. #[config(key_prefix = "SERVER_")])
+    let mut struct_key_prefix = None;
+    for attr in &input.attrs {
+        if attr.path().is_ident("config") {
+            let res = attr.parse_nested_meta(|meta| {
+                if meta.path.is_ident("key_prefix") {
+                    let value = meta.value()?;
+                    let s: syn::LitStr = value.parse()?;
+                    struct_key_prefix = Some(s.value());
+                    Ok(())
+                } else {
+                    Err(meta
+                        .error("unrecognized config attribute on struct (supported: `key_prefix`)"))
+                }
+            });
+            if let Err(e) = res {
+                return e.to_compile_error().into();
+            }
+        }
+    }
+
     let mut field_bindings = Vec::new();
     let mut field_names = Vec::new();
 
@@ -95,6 +116,7 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
 
         let mut key = None;
         let mut default = None;
+        let mut field_key_prefix = None;
 
         for attr in &field.attrs {
             if attr.path().is_ident("config") {
@@ -109,9 +131,13 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
                         let s: syn::LitStr = value.parse()?;
                         default = Some(s.value());
                         Ok(())
+                    } else if meta.path.is_ident("key_prefix") {
+                        let value = meta.value()?;
+                        let s: syn::LitStr = value.parse()?;
+                        field_key_prefix = Some(s.value());
+                        Ok(())
                     } else {
-                        Err(meta
-                            .error("unrecognized config attribute (supported: `key`, `default`)"))
+                        Err(meta.error("unrecognized config attribute on field (supported: `key`, `default`, `key_prefix`)"))
                     }
                 });
                 if let Err(e) = res {
@@ -120,7 +146,12 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
             }
         }
 
-        let key_str = key.unwrap_or_else(|| field_ident.to_string().to_ascii_uppercase());
+        let raw_key = key.unwrap_or_else(|| field_ident.to_string().to_ascii_uppercase());
+        let prefix = field_key_prefix
+            .as_deref()
+            .or(struct_key_prefix.as_deref())
+            .unwrap_or("");
+        let key_str = format!("{prefix}{raw_key}");
 
         if let Some(inner_ty) = extract_option_inner(field_ty) {
             field_bindings.push(quote! {

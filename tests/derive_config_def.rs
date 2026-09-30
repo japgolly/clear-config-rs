@@ -258,3 +258,43 @@ fn test_nested_struct_error_accumulation() {
     assert!(err_str.contains("ENV"));
     assert!(err_str.contains("DEBUG: not specified"));
 }
+
+// 7. Test key_prefix attribute on struct
+#[derive(ConfigDef, Debug, PartialEq)]
+#[config(key_prefix = "SERVER_")]
+struct PrefixedServerConfig {
+    host: Option<String>,
+    #[config(default = "8080")]
+    port: u16,
+    #[config(key = "TIMEOUT_SECONDS")]
+    timeout: u32,
+}
+
+#[test]
+fn test_key_prefix_on_struct() {
+    let mut ctx = make_context(vec![
+        ("SERVER_HOST", "192.168.1.1"),
+        ("SERVER_TIMEOUT_SECONDS", "30"),
+    ]);
+
+    let cfg = ctx.load::<PrefixedServerConfig>().unwrap();
+    assert_eq!(
+        cfg,
+        PrefixedServerConfig {
+            host: Some("192.168.1.1".to_string()),
+            port: 8080,
+            timeout: 30,
+        }
+    );
+}
+
+#[test]
+fn test_key_prefix_missing_required_field_error() {
+    let mut ctx = make_context(vec![("SERVER_HOST", "192.168.1.1")]);
+
+    let err = ctx.load::<PrefixedServerConfig>().unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("SERVER_TIMEOUT_SECONDS: not specified")
+    );
+}
