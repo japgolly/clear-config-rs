@@ -5,7 +5,7 @@ mod source;
 
 pub use crate::parsing::*;
 pub use crate::source::*;
-pub use clear_config_derive::ConfigParser;
+pub use clear_config_derive::{ConfigDef, ConfigParser};
 
 use std::collections::{BTreeSet, HashMap};
 use std::fmt::{Debug, Display};
