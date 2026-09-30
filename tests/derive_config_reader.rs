@@ -29,7 +29,7 @@ fn test_default_key_and_need_success() {
         ("DEBUG", "true"),
     ]);
 
-    let cfg = ctx.load::<BasicConfig>().unwrap();
+    let cfg = ctx.read::<BasicConfig>().unwrap();
     assert_eq!(
         cfg,
         BasicConfig {
@@ -44,7 +44,7 @@ fn test_default_key_and_need_success() {
 fn test_default_key_missing_error() {
     let mut ctx = make_context(vec![("HOST", "127.0.0.1")]);
 
-    let err = ctx.load::<BasicConfig>().unwrap_err();
+    let err = ctx.read::<BasicConfig>().unwrap_err();
     let err_str = err.to_string();
     assert!(err_str.contains("PORT: not specified"));
     assert!(err_str.contains("DEBUG: not specified"));
@@ -66,7 +66,7 @@ fn test_custom_key() {
         ("APP_PORT_NUMBER", "443"),
     ]);
 
-    let cfg = ctx.load::<CustomKeyConfig>().unwrap();
+    let cfg = ctx.read::<CustomKeyConfig>().unwrap();
     assert_eq!(
         cfg,
         CustomKeyConfig {
@@ -91,7 +91,7 @@ struct DefaultValueConfig {
 fn test_default_values_used_when_missing() {
     let mut ctx = make_context(vec![]);
 
-    let cfg = ctx.load::<DefaultValueConfig>().unwrap();
+    let cfg = ctx.read::<DefaultValueConfig>().unwrap();
     assert_eq!(
         cfg,
         DefaultValueConfig {
@@ -110,7 +110,7 @@ fn test_default_values_overridden_when_present() {
         ("ENABLED", "false"),
     ]);
 
-    let cfg = ctx.load::<DefaultValueConfig>().unwrap();
+    let cfg = ctx.read::<DefaultValueConfig>().unwrap();
     assert_eq!(
         cfg,
         DefaultValueConfig {
@@ -134,7 +134,7 @@ struct CustomKeyAndDefaultConfig {
 fn test_custom_key_and_default() {
     let mut ctx = make_context(vec![("SERVER_PORT", "9999")]);
 
-    let cfg = ctx.load::<CustomKeyAndDefaultConfig>().unwrap();
+    let cfg = ctx.read::<CustomKeyAndDefaultConfig>().unwrap();
     assert_eq!(
         cfg,
         CustomKeyAndDefaultConfig {
@@ -157,7 +157,7 @@ struct OptionConfig {
 fn test_option_fields_missing_are_none() {
     let mut ctx = make_context(vec![("HOST", "localhost")]);
 
-    let cfg = ctx.load::<OptionConfig>().unwrap();
+    let cfg = ctx.read::<OptionConfig>().unwrap();
     assert_eq!(
         cfg,
         OptionConfig {
@@ -176,7 +176,7 @@ fn test_option_fields_present_are_some() {
         ("CUSTOM_TAG", "v1.0"),
     ]);
 
-    let cfg = ctx.load::<OptionConfig>().unwrap();
+    let cfg = ctx.read::<OptionConfig>().unwrap();
     assert_eq!(
         cfg,
         OptionConfig {
@@ -191,14 +191,14 @@ fn test_option_fields_present_are_some() {
 fn test_option_fields_invalid_produces_error() {
     let mut ctx = make_context(vec![("HOST", "localhost"), ("PORT", "not_a_number")]);
 
-    let err = ctx.load::<OptionConfig>().unwrap_err();
+    let err = ctx.read::<OptionConfig>().unwrap_err();
     assert!(
         err.to_string()
             .contains("PORT: \"not_a_number\" is not a valid u16")
     );
 }
 
-// 6. Test nested structs (calling load)
+// 6. Test nested structs (calling read)
 #[derive(ConfigReader, Debug, PartialEq)]
 struct DatabaseConfig {
     #[config(key = "DB_HOST", default = "db.internal")]
@@ -232,7 +232,7 @@ fn test_nested_struct_and_all_features_combined() {
         ("LOG_FILE", "/var/log/app.log"),
     ]);
 
-    let cfg = ctx.load::<AppConfig>().unwrap();
+    let cfg = ctx.read::<AppConfig>().unwrap();
     assert_eq!(
         cfg,
         AppConfig {
@@ -252,7 +252,7 @@ fn test_nested_struct_and_all_features_combined() {
 fn test_nested_struct_error_accumulation() {
     let mut ctx = make_context(vec![("DB_PORT", "not_a_port"), ("ENV", "invalid_env")]);
 
-    let err = ctx.load::<AppConfig>().unwrap_err();
+    let err = ctx.read::<AppConfig>().unwrap_err();
     let err_str = err.to_string();
     assert!(err_str.contains("DB_PORT"));
     assert!(err_str.contains("ENV"));
@@ -277,7 +277,7 @@ fn test_key_prefix_on_struct() {
         ("SERVER_TIMEOUT_SECONDS", "30"),
     ]);
 
-    let cfg = ctx.load::<PrefixedServerConfig>().unwrap();
+    let cfg = ctx.read::<PrefixedServerConfig>().unwrap();
     assert_eq!(
         cfg,
         PrefixedServerConfig {
@@ -292,7 +292,7 @@ fn test_key_prefix_on_struct() {
 fn test_key_prefix_missing_required_field_error() {
     let mut ctx = make_context(vec![("SERVER_HOST", "192.168.1.1")]);
 
-    let err = ctx.load::<PrefixedServerConfig>().unwrap_err();
+    let err = ctx.read::<PrefixedServerConfig>().unwrap_err();
     assert!(
         err.to_string()
             .contains("SERVER_TIMEOUT_SECONDS: not specified")

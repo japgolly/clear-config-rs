@@ -17,15 +17,15 @@ pub trait ConfigReader {
 }
 
 #[derive(Clone, Debug)]
-pub struct LoadError {
+pub struct ReadError {
     pub key: String,
     pub msg: ErrorMsg,
 }
 
 #[derive(Clone, Debug)]
-pub struct LoadErrors(Vec<LoadError>);
+pub struct ReadErrors(Vec<ReadError>);
 
-impl Display for LoadErrors {
+impl Display for ReadErrors {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Config errors:").unwrap();
         let sorted: BTreeSet<String> = self
@@ -43,7 +43,7 @@ impl Display for LoadErrors {
 pub struct ConfigContext {
     pub sources: Vec<ConfigSource>,
     keys_seen: HashMap<String, Option<String>>, // key -> default
-    load_errors: Vec<LoadError>,
+    read_errors: Vec<ReadError>,
 }
 
 impl Default for ConfigContext {
@@ -57,14 +57,14 @@ impl ConfigContext {
         ConfigContext {
             sources,
             keys_seen: HashMap::new(),
-            load_errors: Vec::new(),
+            read_errors: Vec::new(),
         }
     }
 
-    pub fn load<A: ConfigReader>(&mut self) -> Result<A, LoadErrors> {
+    pub fn read<A: ConfigReader>(&mut self) -> Result<A, ReadErrors> {
         match A::read(self) {
-            Some(a) if self.load_errors.is_empty() => Ok(a),
-            _ => Err(LoadErrors(self.load_errors.clone())),
+            Some(a) if self.read_errors.is_empty() => Ok(a),
+            _ => Err(ReadErrors(self.read_errors.clone())),
         }
     }
 
@@ -78,7 +78,7 @@ impl ConfigContext {
             Some(str) => match A::parse_config(str) {
                 Ok(a) => Some(Some(a)),
                 Err(msg) => {
-                    self.load_errors.push(LoadError {
+                    self.read_errors.push(ReadError {
                         key: key.clone(),
                         msg,
                     });
@@ -107,7 +107,7 @@ impl ConfigContext {
             Some(None) => match A::parse_config(default) {
                 Ok(a) => Some(a),
                 Err(msg) => {
-                    self.load_errors.push(LoadError {
+                    self.read_errors.push(ReadError {
                         key: key.clone(),
                         msg,
                     });
@@ -122,7 +122,7 @@ impl ConfigContext {
         match self.lookup(key, None) {
             Some(Some(a)) => Some(a),
             Some(None) => {
-                self.load_errors.push(LoadError {
+                self.read_errors.push(ReadError {
                     key: key.clone(),
                     msg: ErrorMsg(String::from("not specified")),
                 });

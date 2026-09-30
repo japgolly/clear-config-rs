@@ -51,7 +51,7 @@ impl ConfigReader for AppConfig {
 
 fn main() {
     let mut ctx = ConfigContext::default();
-    let result = ctx.load::<AppConfig>();
+    let result = ctx.read::<AppConfig>();
     println!("{}", ctx.report_used());
     match result {
         Ok(cfg) => println!("{:?}", cfg),
