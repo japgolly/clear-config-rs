@@ -40,6 +40,8 @@ impl Display for ReadErrors {
     }
 }
 
+impl std::error::Error for ReadErrors {}
+
 pub struct ConfigContext {
     pub sources: Vec<ConfigSource>,
     keys_seen: HashMap<String, Option<String>>, // key -> default

@@ -5,6 +5,14 @@ use std::time::Duration;
 #[derive(Clone, Debug, PartialEq)]
 pub struct ErrorMsg(pub String);
 
+impl std::fmt::Display for ErrorMsg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for ErrorMsg {}
+
 pub trait ConfigParser: Sized {
     fn parse_config(s: &str) -> Result<Self, ErrorMsg>;
 }
