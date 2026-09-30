@@ -3,6 +3,9 @@ name = "clear-config"
 version = "0.1.0"
 edition = "2024"
 exclude = ["examples/**"]
+description = "ClearConfig for Rust"
+license = "Apache-2.0"
+repository = "https://github.com/japgolly/clear-config-rs"
 
 [lib]
 name = "clear_config"

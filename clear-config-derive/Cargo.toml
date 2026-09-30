@@ -2,6 +2,9 @@
 name = "clear-config-derive"
 version = "0.1.0"
 edition = "2024"
+description = "Derive macros for clear-config"
+license = "Apache-2.0"
+repository = "https://github.com/japgolly/clear-config-rs"
 
 [lib]
 proc-macro = true
