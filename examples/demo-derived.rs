@@ -1,13 +1,5 @@
 use clear_config::*;
-
-#[allow(dead_code)]
-#[derive(ConfigReader, Debug)]
-#[config(key_prefix = "SERVER_")]
-struct ServerConfig {
-    host: Option<String>,
-    #[config(default = "8080")]
-    port: u16,
-}
+use std::time::Duration;
 
 #[derive(ConfigParser, Debug)]
 enum Environment {
@@ -21,9 +13,18 @@ enum Environment {
 struct AppConfig {
     server: ServerConfig,
     debug: bool,
-    #[config(default = "false")]
-    verbose: bool,
+    #[config(default = "30 sec")]
+    timeout: Duration,
     env: Environment,
+}
+
+#[allow(dead_code)]
+#[derive(ConfigReader, Debug)]
+#[config(key_prefix = "SERVER_")]
+struct ServerConfig {
+    host: Option<String>,
+    #[config(default = "8080")]
+    port: u16,
 }
 
 fn main() {
