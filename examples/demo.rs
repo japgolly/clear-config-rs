@@ -25,8 +25,8 @@ struct AppConfig {
 
 impl ConfigDef for ServerConfig {
     fn load(ctx: &mut ConfigContext) -> Option<Self> {
-        let host = ctx.get_or_parse::<String>(&String::from("HOST"), "localhost");
-        let port = ctx.get_or_parse::<u16>(&String::from("PORT"), "8080");
+        let host = ctx.get_or_parse::<String>(&String::from("SERVER_HOST"), "localhost");
+        let port = ctx.get_or_parse::<u16>(&String::from("SERVER_PORT"), "8080");
         Some(ServerConfig {
             host: host?,
             port: port?,
