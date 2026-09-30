@@ -3,7 +3,7 @@ use clear_config::*;
 #[allow(dead_code)]
 #[derive(Debug)]
 struct ServerConfig {
-    host: String,
+    host: Option<String>,
     port: u16,
 }
 
@@ -25,7 +25,7 @@ struct AppConfig {
 
 impl ConfigDef for ServerConfig {
     fn load(ctx: &mut ConfigContext) -> Option<Self> {
-        let host = ctx.get_or_parse::<String>(&String::from("SERVER_HOST"), "localhost");
+        let host = ctx.get::<String>(&String::from("SERVER_HOST"));
         let port = ctx.get_or_parse::<u16>(&String::from("SERVER_PORT"), "8080");
         Some(ServerConfig {
             host: host?,
