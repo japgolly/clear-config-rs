@@ -83,3 +83,23 @@ An example of the output printed is:
 ╰─────────────┴─────────────┴─────────╯
 AppConfig { server: ServerConfig { host: None, port: 3000 }, debug: true, timeout: 60s, env: Dev }
 ```
+
+On the other hand, if something goes wrong you can expect to see a set of errors:
+
+```
+╭─────────────────────────────────────╮
+│            Config Report            │
+├─────────────┬─────────────┬─────────┤
+│ Key         │ Environment │ Default │
+├─────────────┼─────────────┼─────────┤
+│ DEBUG       │             │         │
+│ ENV         │ local       │         │
+│ SERVER_HOST │             │         │
+│ SERVER_PORT │             │ 8080    │
+│ TIMEOUT     │ what        │ 30 sec  │
+╰─────────────┴─────────────┴─────────╯
+Config errors:
+  * DEBUG: not specified
+  * ENV: "local" is not a valid Environment (expected one of: Dev, Staging, Prod)
+  * TIMEOUT: "what" is not a valid duration
+```
