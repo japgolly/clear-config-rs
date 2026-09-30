@@ -22,21 +22,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "clear-config"
+version = "0.1.0"
+dependencies = [
+ "ascii_table_rs",
+ "clear-config-derive",
+ "regex",
+]
+
+[[package]]
 name = "clear-config-derive"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "clear-config-rs"
-version = "0.1.0"
-dependencies = [
- "ascii_table_rs",
- "clear-config-derive",
- "regex",
 ]
 
 [[package]]
