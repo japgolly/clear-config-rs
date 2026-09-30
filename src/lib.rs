@@ -90,7 +90,7 @@ impl ConfigContext {
     }
 
     pub fn get<A: ConfigParser>(&mut self, key: &String) -> Option<Option<A>> {
-        self.lookup(key, None)
+        self.lookup(key, Some("None".to_string()))
     }
 
     pub fn get_or_use<A: ConfigParser + Debug>(&mut self, key: &String, default: A) -> Option<A> {

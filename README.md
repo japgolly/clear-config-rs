@@ -15,9 +15,9 @@ This example sets up the following:
 ╭─────────────┬─────────╮
 │ Key         │ Default │
 ├─────────────┼─────────┤
-│ DEBUG       │         │ // Mandatory
-│ ENV         │         │ // Mandatory
-│ SERVER_HOST │         │ // Optional
+│ DEBUG       │         │ Mandatory field
+│ ENV         │         │ Mandatory field
+│ SERVER_HOST │ None    │
 │ SERVER_PORT │ 8080    │
 │ TIMEOUT     │ 30 sec  │
 ╰─────────────┴─────────╯
@@ -77,7 +77,7 @@ An example of the output printed is:
 ├─────────────┼─────────────┼─────────┤
 │ DEBUG       │ true        │         │
 │ ENV         │ dev         │         │
-│ SERVER_HOST │             │         │
+│ SERVER_HOST │             │ None    │
 │ SERVER_PORT │ 3000        │ 8080    │
 │ TIMEOUT     │ 1min        │ 30 sec  │
 ╰─────────────┴─────────────┴─────────╯
@@ -94,7 +94,7 @@ On the other hand, if something goes wrong you can expect to see a set of errors
 ├─────────────┼─────────────┼─────────┤
 │ DEBUG       │             │         │
 │ ENV         │ local       │         │
-│ SERVER_HOST │             │         │
+│ SERVER_HOST │             │ None    │
 │ SERVER_PORT │             │ 8080    │
 │ TIMEOUT     │ what        │ 30 sec  │
 ╰─────────────┴─────────────┴─────────╯
