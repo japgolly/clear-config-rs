@@ -166,7 +166,7 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
                 None => quote! { ::core::option::Option::None },
             };
             field_bindings.push(quote! {
-                let #field_ident = __Loader::<#field_ty>::new().load_field(ctx, #key_str, #default_tokens);
+                let #field_ident = __Loader::<#field_ty>::new().read_field(ctx, #key_str, #default_tokens);
             });
         }
     }
@@ -187,24 +187,24 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
 
             trait __LoadDef {
                 type Out;
-                fn load_field(self, ctx: &mut ConfigContext, key: &str, default: ::core::option::Option<&str>) -> ::core::option::Option<Self::Out>;
+                fn read_field(self, ctx: &mut ConfigContext, key: &str, default: ::core::option::Option<&str>) -> ::core::option::Option<Self::Out>;
             }
 
             impl<T: ConfigReader> __LoadDef for __Loader<T> {
                 type Out = T;
-                fn load_field(self, ctx: &mut ConfigContext, _key: &str, _default: ::core::option::Option<&str>) -> ::core::option::Option<T> {
-                    T::load(ctx)
+                fn read_field(self, ctx: &mut ConfigContext, _key: &str, _default: ::core::option::Option<&str>) -> ::core::option::Option<T> {
+                    T::read(ctx)
                 }
             }
 
             trait __LoadParser {
                 type Out;
-                fn load_field(self, ctx: &mut ConfigContext, key: &str, default: ::core::option::Option<&str>) -> ::core::option::Option<Self::Out>;
+                fn read_field(self, ctx: &mut ConfigContext, key: &str, default: ::core::option::Option<&str>) -> ::core::option::Option<Self::Out>;
             }
 
             impl<T: ConfigParser> __LoadParser for &__Loader<T> {
                 type Out = T;
-                fn load_field(self, ctx: &mut ConfigContext, key: &str, default: ::core::option::Option<&str>) -> ::core::option::Option<T> {
+                fn read_field(self, ctx: &mut ConfigContext, key: &str, default: ::core::option::Option<&str>) -> ::core::option::Option<T> {
                     let key_str = ::std::string::String::from(key);
                     match default {
                         ::core::option::Option::Some(def) => ctx.get_or_parse::<T>(&key_str, def),
@@ -214,7 +214,7 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
             }
 
             impl #impl_generics ConfigReader for #name #ty_generics #where_clause {
-                fn load(ctx: &mut ConfigContext) -> ::core::option::Option<Self> {
+                fn read(ctx: &mut ConfigContext) -> ::core::option::Option<Self> {
                     #(#field_bindings)*
 
                     ::core::option::Option::Some(#name {
