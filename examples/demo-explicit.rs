@@ -23,7 +23,7 @@ struct AppConfig {
     env: Environment,
 }
 
-impl ConfigDef for ServerConfig {
+impl ConfigReader for ServerConfig {
     fn load(ctx: &mut ConfigContext) -> Option<Self> {
         let host = ctx.get::<String>(&String::from("SERVER_HOST"));
         let port = ctx.get_or_parse::<u16>(&String::from("SERVER_PORT"), "8080");
@@ -34,7 +34,7 @@ impl ConfigDef for ServerConfig {
     }
 }
 
-impl ConfigDef for AppConfig {
+impl ConfigReader for AppConfig {
     fn load(ctx: &mut ConfigContext) -> Option<Self> {
         let server = ServerConfig::load(ctx);
         let debug = ctx.need::<bool>(&String::from("DEBUG"));

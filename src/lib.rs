@@ -5,12 +5,12 @@ mod source;
 
 pub use crate::parsing::*;
 pub use crate::source::*;
-pub use clear_config_derive::{ConfigDef, ConfigParser};
+pub use clear_config_derive::{ConfigParser, ConfigReader};
 
 use std::collections::{BTreeSet, HashMap};
 use std::fmt::{Debug, Display};
 
-pub trait ConfigDef {
+pub trait ConfigReader {
     fn load(ctx: &mut ConfigContext) -> Option<Self>
     where
         Self: Sized;
@@ -61,7 +61,7 @@ impl ConfigContext {
         }
     }
 
-    pub fn load<A: ConfigDef>(&mut self) -> Result<A, LoadErrors> {
+    pub fn load<A: ConfigReader>(&mut self) -> Result<A, LoadErrors> {
         match A::load(self) {
             Some(a) if self.load_errors.is_empty() => Ok(a),
             _ => Err(LoadErrors(self.load_errors.clone())),

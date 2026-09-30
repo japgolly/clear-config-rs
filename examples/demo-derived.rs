@@ -1,7 +1,7 @@
 use clear_config::*;
 
 #[allow(dead_code)]
-#[derive(ConfigDef, Debug)]
+#[derive(ConfigReader, Debug)]
 #[config(key_prefix = "SERVER_")]
 struct ServerConfig {
     host: Option<String>,
@@ -17,7 +17,7 @@ enum Environment {
 }
 
 #[allow(dead_code)]
-#[derive(ConfigDef, Debug)]
+#[derive(ConfigReader, Debug)]
 struct AppConfig {
     server: ServerConfig,
     debug: bool,

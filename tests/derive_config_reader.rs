@@ -1,5 +1,5 @@
 use clear_config::{ConfigContext, ConfigSource};
-use clear_config_derive::{ConfigDef, ConfigParser};
+use clear_config_derive::{ConfigParser, ConfigReader};
 use std::collections::HashMap;
 
 fn make_context(entries: Vec<(&str, &str)>) -> ConfigContext {
@@ -14,7 +14,7 @@ fn make_context(entries: Vec<(&str, &str)>) -> ConfigContext {
 }
 
 // 1. Test default field name in uppercase and required (need)
-#[derive(ConfigDef, Debug, PartialEq)]
+#[derive(ConfigReader, Debug, PartialEq)]
 struct BasicConfig {
     host: String,
     port: u16,
@@ -51,7 +51,7 @@ fn test_default_key_missing_error() {
 }
 
 // 2. Test custom key annotation
-#[derive(ConfigDef, Debug, PartialEq)]
+#[derive(ConfigReader, Debug, PartialEq)]
 struct CustomKeyConfig {
     #[config(key = "APP_HOST_NAME")]
     host: String,
@@ -77,7 +77,7 @@ fn test_custom_key() {
 }
 
 // 3. Test default values (get_or_parse)
-#[derive(ConfigDef, Debug, PartialEq)]
+#[derive(ConfigReader, Debug, PartialEq)]
 struct DefaultValueConfig {
     #[config(default = "localhost")]
     host: String,
@@ -122,7 +122,7 @@ fn test_default_values_overridden_when_present() {
 }
 
 // 4. Test custom key combined with default value
-#[derive(ConfigDef, Debug, PartialEq)]
+#[derive(ConfigReader, Debug, PartialEq)]
 struct CustomKeyAndDefaultConfig {
     #[config(key = "SERVER_HOST", default = "127.0.0.1")]
     host: String,
@@ -145,7 +145,7 @@ fn test_custom_key_and_default() {
 }
 
 // 5. Test Option fields (get)
-#[derive(ConfigDef, Debug, PartialEq)]
+#[derive(ConfigReader, Debug, PartialEq)]
 struct OptionConfig {
     host: String,
     port: Option<u16>,
@@ -199,7 +199,7 @@ fn test_option_fields_invalid_produces_error() {
 }
 
 // 6. Test nested structs (calling load)
-#[derive(ConfigDef, Debug, PartialEq)]
+#[derive(ConfigReader, Debug, PartialEq)]
 struct DatabaseConfig {
     #[config(key = "DB_HOST", default = "db.internal")]
     host: String,
@@ -213,7 +213,7 @@ enum Environment {
     Prod,
 }
 
-#[derive(ConfigDef, Debug, PartialEq)]
+#[derive(ConfigReader, Debug, PartialEq)]
 struct AppConfig {
     db: DatabaseConfig,
     env: Environment,
@@ -260,7 +260,7 @@ fn test_nested_struct_error_accumulation() {
 }
 
 // 7. Test key_prefix attribute on struct
-#[derive(ConfigDef, Debug, PartialEq)]
+#[derive(ConfigReader, Debug, PartialEq)]
 #[config(key_prefix = "SERVER_")]
 struct PrefixedServerConfig {
     host: Option<String>,

@@ -65,21 +65,24 @@ pub fn derive_config_parser(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-#[proc_macro_derive(ConfigDef, attributes(config))]
+#[proc_macro_derive(ConfigReader, attributes(config))]
 pub fn derive_config_def(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
 
     let Data::Struct(data_struct) = &input.data else {
-        return syn::Error::new_spanned(&input.ident, "ConfigDef can only be derived for structs")
-            .to_compile_error()
-            .into();
+        return syn::Error::new_spanned(
+            &input.ident,
+            "ConfigReader can only be derived for structs",
+        )
+        .to_compile_error()
+        .into();
     };
 
     let Fields::Named(fields_named) = &data_struct.fields else {
         return syn::Error::new_spanned(
             &input.ident,
-            "ConfigDef can only be derived for structs with named fields",
+            "ConfigReader can only be derived for structs with named fields",
         )
         .to_compile_error()
         .into();
@@ -172,7 +175,7 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         const _: () = {
-            use clear_config::{ConfigContext, ConfigDef, ConfigParser};
+            use clear_config::{ConfigContext, ConfigReader, ConfigParser};
 
             struct __Loader<T>(::core::marker::PhantomData<T>);
 
@@ -187,7 +190,7 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
                 fn load_field(self, ctx: &mut ConfigContext, key: &str, default: ::core::option::Option<&str>) -> ::core::option::Option<Self::Out>;
             }
 
-            impl<T: ConfigDef> __LoadDef for __Loader<T> {
+            impl<T: ConfigReader> __LoadDef for __Loader<T> {
                 type Out = T;
                 fn load_field(self, ctx: &mut ConfigContext, _key: &str, _default: ::core::option::Option<&str>) -> ::core::option::Option<T> {
                     T::load(ctx)
@@ -210,7 +213,7 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
                 }
             }
 
-            impl #impl_generics ConfigDef for #name #ty_generics #where_clause {
+            impl #impl_generics ConfigReader for #name #ty_generics #where_clause {
                 fn load(ctx: &mut ConfigContext) -> ::core::option::Option<Self> {
                     #(#field_bindings)*
 
