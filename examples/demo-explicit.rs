@@ -11,10 +11,10 @@ enum Environment {
 #[allow(dead_code)]
 #[derive(Debug)]
 struct AppConfig {
-    server: ServerConfig,
     debug: bool,
-    timeout: Duration,
     env: Environment,
+    server: ServerConfig,
+    timeout: Duration,
 }
 
 #[allow(dead_code)]
