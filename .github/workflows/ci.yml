@@ -21,3 +21,6 @@ jobs:
 
     - name: Test
       run: cargo test
+
+    - name: Run demos
+      run: make demo
