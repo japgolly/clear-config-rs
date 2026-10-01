@@ -4,6 +4,7 @@
 * Add `std::error::Error` impls for `ReadErrors` and `ErrorMsg`
 * Add `std::fmt::Display` impl for `ErrorMsg`
 * Remove `regex` dependency
+* Add a `ConfigParser` for `std::path::PathBuf`
 
 # 0.1.0
 

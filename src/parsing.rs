@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::time::Duration;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -84,6 +85,12 @@ impl ConfigParser for Duration {
                 _ => Err(ErrorMsg(format!("{units:?} is not a valid time unit"))),
             },
         }
+    }
+}
+
+impl ConfigParser for PathBuf {
+    fn parse_config(s: &str) -> Result<Self, ErrorMsg> {
+        Ok(PathBuf::from(s))
     }
 }
 
