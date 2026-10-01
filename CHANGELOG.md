@@ -1,4 +1,4 @@
-# 0.1.1
+# 0.2.0
 
 * Optional fields now display "None" as their default in the report
 * Add `std::error::Error` impls for `ReadErrors` and `ErrorMsg`
