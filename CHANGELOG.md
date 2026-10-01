@@ -3,6 +3,7 @@
 * Optional fields now display "None" as their default in the report
 * Add `std::error::Error` impls for `ReadErrors` and `ErrorMsg`
 * Add `std::fmt::Display` impl for `ErrorMsg`
+* Remove `regex` dependency
 
 # 0.1.0
 

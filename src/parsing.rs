@@ -1,5 +1,3 @@
-use regex::Regex;
-use std::sync::LazyLock;
 use std::time::Duration;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -25,17 +23,10 @@ impl ConfigParser for String {
 
 impl ConfigParser for bool {
     fn parse_config(s: &str) -> Result<Self, ErrorMsg> {
-        static REGEX_TRUE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"(?i)^(?:t(?:rue)?|y(?:es)?|1|on|enabled?)$").unwrap());
-        static REGEX_FALSE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"(?i)^(?:f(?:alse)?|n(?:o)?|0|off|disabled?)$").unwrap());
-
-        if REGEX_TRUE.is_match(s) {
-            Ok(true)
-        } else if REGEX_FALSE.is_match(s) {
-            Ok(false)
-        } else {
-            Err(ErrorMsg(format!("{s:?} is not a valid bool")))
+        match s.trim().to_ascii_lowercase().as_str() {
+            "1" | "t" | "true" | "y" | "yes" | "on" | "enable" | "enabled" => Ok(true),
+            "0" | "f" | "false" | "n" | "no" | "off" | "disable" | "disabled" => Ok(false),
+            _ => Err(ErrorMsg(format!("{s:?} is not a valid bool"))),
         }
     }
 }
@@ -58,47 +49,40 @@ impl_via_str_parse!(f32, f64, char);
 
 impl ConfigParser for Duration {
     fn parse_config(s: &str) -> Result<Self, ErrorMsg> {
-        static REGEX_MAIN: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"^\s*(\d+)\s*([a-zA-Z]+)\s*$").unwrap());
-        static REGEX_NANO: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"(?i)^n(?:ano(?:sec(?:ond)?)?)?s?$").unwrap());
-        static REGEX_MICRO: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"(?i)^(?:u|micro(?:sec(?:ond)?)?)s?$").unwrap());
-        static REGEX_MILLI: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"(?i)^milli(?:sec(?:ond)?)?s?|ms$").unwrap());
-        static REGEX_SEC: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"(?i)^s(?:ec(?:onds?)?)?$").unwrap());
-        static REGEX_MIN: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"(?i)^m(?:in(?:ute)?)?s?$").unwrap());
-        static REGEX_HR: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"(?i)^h(?:(?:ou)?r)?s?$").unwrap());
+        let s = s.trim();
 
-        match REGEX_MAIN.captures(s) {
-            None => Err(ErrorMsg(format!("{s:?} is not a valid duration"))),
-            Some(m) => {
-                let qty = m.get(1).unwrap().as_str();
-                match qty.parse::<u64>() {
-                    Err(_) => Err(ErrorMsg(format!("{qty:?} is not a valid u64"))),
-                    Ok(qty) => {
-                        let units = m.get(2).unwrap().as_str();
-                        if REGEX_NANO.is_match(units) {
-                            Ok(Duration::from_nanos(qty))
-                        } else if REGEX_MICRO.is_match(units) {
-                            Ok(Duration::from_micros(qty))
-                        } else if REGEX_MILLI.is_match(units) {
-                            Ok(Duration::from_millis(qty))
-                        } else if REGEX_SEC.is_match(units) {
-                            Ok(Duration::from_secs(qty))
-                        } else if REGEX_MIN.is_match(units) {
-                            Ok(Duration::from_mins(qty))
-                        } else if REGEX_HR.is_match(units) {
-                            Ok(Duration::from_hours(qty))
-                        } else {
-                            Err(ErrorMsg(format!("{units:?} is not a valid time unit")))
-                        }
-                    }
-                }
-            }
+        let i = match s.find(|c: char| !c.is_ascii_digit()) {
+            Some(i) => i,
+            None => return Err(ErrorMsg(format!("{s:?} is not a valid duration"))),
+        };
+
+        let qty = &s[..i];
+        let units = s[i..].trim_start();
+
+        if qty.is_empty() {
+            return Err(ErrorMsg(format!("{s:?} is not a valid duration")));
+        }
+
+        match qty.parse::<u64>() {
+            Err(_) => Err(ErrorMsg(format!("{qty:?} is not a valid u64"))),
+            Ok(qty) => match units.to_ascii_lowercase().as_str() {
+                "n" | "ns" | "nano" | "nanos" | "nanosec" | "nanosecs" | "nanosecond"
+                | "nanoseconds" => Ok(Duration::from_nanos(qty)),
+
+                "u" | "us" | "micro" | "micros" | "microsec" | "microsecs" | "microsecond"
+                | "microseconds" => Ok(Duration::from_micros(qty)),
+
+                "ms" | "milli" | "millis" | "millisec" | "millisecs" | "millisecond"
+                | "milliseconds" => Ok(Duration::from_millis(qty)),
+
+                "s" | "sec" | "secs" | "second" | "seconds" => Ok(Duration::from_secs(qty)),
+
+                "m" | "min" | "mins" | "minute" | "minutes" => Ok(Duration::from_mins(qty)),
+
+                "h" | "hs" | "hr" | "hrs" | "hour" | "hours" => Ok(Duration::from_hours(qty)),
+
+                _ => Err(ErrorMsg(format!("{units:?} is not a valid time unit"))),
+            },
         }
     }
 }
@@ -231,6 +215,16 @@ mod tests {
         assert_parses("1 hrs", Duration::from_hours(1));
         assert_parses("1 hour", Duration::from_hours(1));
         assert_parses("1 hours", Duration::from_hours(1));
+    }
+
+    #[test]
+    fn test_duration_missing_qty() {
+        assert_parse_fails::<Duration>("m", "\"m\" is not a valid duration");
+    }
+
+    #[test]
+    fn test_duration_missing_unit() {
+        assert_parse_fails::<Duration>("1", "\"1\" is not a valid duration");
     }
 
     #[test]
