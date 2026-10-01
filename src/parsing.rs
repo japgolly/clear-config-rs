@@ -1,3 +1,4 @@
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -47,6 +48,7 @@ macro_rules! impl_via_str_parse {
 impl_via_str_parse!(u8, u16, u32, u64, u128, usize);
 impl_via_str_parse!(i8, i16, i32, i64, i128, isize);
 impl_via_str_parse!(f32, f64, char);
+impl_via_str_parse!(IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr);
 
 impl ConfigParser for Duration {
     fn parse_config(s: &str) -> Result<Self, ErrorMsg> {
@@ -146,6 +148,11 @@ mod tests {
     #[test]
     fn test_u16() {
         assert_parses::<u16>("123", 123);
+    }
+
+    #[test]
+    fn test_ipv4() {
+        assert_parses::<IpAddr>("127.0.0.1", IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
     }
 
     #[test]

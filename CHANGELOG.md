@@ -5,6 +5,7 @@
 * Add `std::fmt::Display` impl for `ErrorMsg`
 * Remove `regex` dependency
 * Add a `ConfigParser` for `std::path::PathBuf`
+* Add a `ConfigParser` for `IpAddr`, `Ipv4Addr`, `Ipv6Addr`, `SocketAddr`
 
 # 0.1.0
 
