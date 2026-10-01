@@ -103,3 +103,36 @@ Config errors:
   * ENV: "local" is not a valid Environment (expected one of: Dev, Staging, Prod)
   * TIMEOUT: "what" is not a valid duration
 ```
+
+## Loading a .env file
+
+Instead of
+
+```rs
+    let mut ctx = ConfigContext::default();
+```
+
+you can manually specify config sources:
+
+```rs
+    let mut ctx = ConfigContext::new(vec![
+        ConfigSource::env(),
+        ConfigSource::env_file(".env"),
+    ]);
+```
+
+Example output:
+
+```
+╭─────────────────────────────────────────────────╮
+│                  Config Report                  │
+├─────────────┬─────────────┬───────────┬─────────┤
+│ Key         │ Environment │ .env      │ Default │
+├─────────────┼─────────────┼───────────┼─────────┤
+│ DEBUG       │ false       │ 1         │         │
+│ ENV         │             │ dev       │         │
+│ SERVER_HOST │             │ localhost │ None    │
+│ SERVER_PORT │             │ 3000      │ 8080    │
+│ TIMEOUT     │             │ 1min      │ 30 sec  │
+╰─────────────┴─────────────┴───────────┴─────────╯
+```

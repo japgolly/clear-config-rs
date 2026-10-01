@@ -1,3 +1,7 @@
+# 0.3.0
+
+Add `ConfigSource::env_file(filename)` for loading .env files
+
 # 0.2.0
 
 * Optional fields now display "None" as their default in the report

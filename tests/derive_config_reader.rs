@@ -9,7 +9,7 @@ fn make_context(entries: Vec<(&str, &str)>) -> ConfigContext {
     }
     ConfigContext::new(vec![ConfigSource {
         name: "Test".to_string(),
-        data,
+        data: Ok(data),
     }])
 }
 

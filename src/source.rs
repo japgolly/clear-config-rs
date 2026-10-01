@@ -1,19 +1,145 @@
 use std::collections::HashMap;
 
+use crate::ErrorMsg;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SourceError(pub ErrorMsg);
+
+impl std::fmt::Display for SourceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for SourceError {}
+
+#[derive(Debug, PartialEq)]
 pub struct ConfigSource {
     pub name: String,
-    pub data: HashMap<String, String>,
+    pub data: Result<HashMap<String, String>, Vec<SourceError>>,
 }
 
 impl ConfigSource {
     pub fn env() -> Self {
         ConfigSource {
             name: String::from("Environment"),
-            data: std::env::vars().collect(),
+            data: Ok(std::env::vars().collect()),
         }
     }
 
+    pub fn env_file(filename: &str) -> Self {
+        let name = filename.to_string();
+        match std::fs::read_to_string(filename) {
+            Ok(content) => Self::env_file_content(name, content),
+            Err(e) => {
+                let err_msg = ErrorMsg(format!("{}: {}", filename, e));
+                ConfigSource {
+                    name,
+                    data: Err(vec![SourceError(err_msg)]),
+                }
+            }
+        }
+    }
+
+    pub fn env_file_content(name: String, content: String) -> Self {
+        let mut errors = Vec::new();
+        let mut map = HashMap::new();
+        for line in content.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let i = line.find('=');
+            match i {
+                Some(0) | None => {
+                    errors.push(SourceError(ErrorMsg(
+                        format!("{}: Invalid line: {}", name, line).to_string(),
+                    )));
+                    continue;
+                }
+                _ => (),
+            };
+            let i = i.unwrap();
+            let name = &line[..i];
+            let value = &line[i + 1..];
+            map.insert(name.to_string(), value.to_string());
+        }
+        let data = if errors.is_empty() {
+            Ok(map)
+        } else {
+            Err(errors)
+        };
+        ConfigSource { name, data }
+    }
+
     pub fn get(&self, key: &String) -> Option<&String> {
-        self.data.get(key)
+        self.data.as_ref().ok().and_then(|m| m.get(key))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn env_file_not_found() {
+        let src = ConfigSource::env_file(".env.missing");
+        assert_eq!(
+            src,
+            ConfigSource {
+                name: ".env.missing".to_string(),
+                data: Err(vec![SourceError(ErrorMsg(
+                    ".env.missing: No such file or directory (os error 2)".to_string()
+                ))])
+            }
+        )
+    }
+
+    #[test]
+    fn env_file_content_ok() {
+        let content = r"
+# Comment
+
+X=abc
+Y_Y=def
+Z=
+        ";
+        let mut expect = HashMap::new();
+        expect.insert("X".to_string(), "abc".to_string());
+        expect.insert("Y_Y".to_string(), "def".to_string());
+        expect.insert("Z".to_string(), "".to_string());
+        let name = String::from(".env");
+        let src = ConfigSource::env_file_content(name.clone(), content.to_string());
+        assert_eq!(
+            src,
+            ConfigSource {
+                name,
+                data: Ok(expect)
+            }
+        )
+    }
+
+    #[test]
+    fn env_file_content_ko() {
+        let content = r"
+# Comment
+
+X=abc
+Y_Y
+=def
+
+        ";
+        let name = String::from(".env");
+        let src = ConfigSource::env_file_content(name.clone(), content.to_string());
+        assert_eq!(
+            src,
+            ConfigSource {
+                name,
+                data: Err(vec![
+                    SourceError(ErrorMsg(".env: Invalid line: Y_Y".to_string())),
+                    SourceError(ErrorMsg(".env: Invalid line: =def".to_string())),
+                ])
+            }
+        )
     }
 }

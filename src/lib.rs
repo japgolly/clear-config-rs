@@ -23,16 +23,21 @@ pub struct ReadError {
 }
 
 #[derive(Clone, Debug)]
-pub struct ReadErrors(Vec<ReadError>);
+pub enum ReadErrors {
+    Source(Vec<SourceError>),
+    Read(Vec<ReadError>),
+}
 
 impl Display for ReadErrors {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Config errors:").unwrap();
-        let sorted: BTreeSet<String> = self
-            .0
-            .iter()
-            .map(|e| format!("{}: {}", e.key, e.msg.0))
-            .collect();
+        let sorted: BTreeSet<String> = match self {
+            ReadErrors::Source(errs) => errs.iter().map(|e| format!("{}", e.0)).collect(),
+            ReadErrors::Read(errs) => errs
+                .iter()
+                .map(|e| format!("{}: {}", e.key, e.msg.0))
+                .collect(),
+        };
         for s in sorted {
             write!(f, "\n  * {}", s).unwrap();
         }
@@ -64,9 +69,21 @@ impl ConfigContext {
     }
 
     pub fn read<A: ConfigReader>(&mut self) -> Result<A, ReadErrors> {
+        // 1. Check all sources for errors
+        let source_errors: Vec<SourceError> = self
+            .sources
+            .iter()
+            .filter_map(|s| s.data.as_ref().err().cloned())
+            .flatten()
+            .collect();
+        if !source_errors.is_empty() {
+            return Err(ReadErrors::Source(source_errors));
+        }
+
+        // 2. Read config
         match A::read(self) {
             Some(a) if self.read_errors.is_empty() => Ok(a),
-            _ => Err(ReadErrors(self.read_errors.clone())),
+            _ => Err(ReadErrors::Read(self.read_errors.clone())),
         }
     }
 
@@ -167,5 +184,38 @@ impl ConfigContext {
         }
 
         table.render_to_string().trim().to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_source_errors() {
+        let errors = ReadErrors::Source(vec![
+            SourceError(ErrorMsg("failed to load x".to_string())),
+            SourceError(ErrorMsg("failed to load a".to_string())),
+        ]);
+        let actual = format!("{}", errors);
+        let expect = "Config errors:\n  * failed to load a\n  * failed to load x";
+        assert_eq!(actual.as_str(), expect);
+    }
+
+    #[test]
+    fn display_read_errors() {
+        let errors = ReadErrors::Read(vec![
+            ReadError {
+                key: "X".to_string(),
+                msg: ErrorMsg("not specified".to_string()),
+            },
+            ReadError {
+                key: "A".to_string(),
+                msg: ErrorMsg("not specified".to_string()),
+            },
+        ]);
+        let actual = format!("{}", errors);
+        let expect = "Config errors:\n  * A: not specified\n  * X: not specified";
+        assert_eq!(actual.as_str(), expect);
     }
 }
