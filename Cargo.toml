@@ -1,6 +1,6 @@
 [package]
 name = "clear-config"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 exclude = ["examples/**"]
 description = "ClearConfig for Rust"
@@ -11,5 +11,5 @@ repository = "https://github.com/japgolly/clear-config-rs"
 name = "clear_config"
 
 [dependencies]
-clear-config-derive = { path = "clear-config-derive", version = "0.1.0" }
+clear-config-derive = { path = "clear-config-derive", version = "0.3.0" }
 ascii_table_rs = "1.0.2"

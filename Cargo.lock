@@ -14,7 +14,7 @@ dependencies = [
 
 [[package]]
 name = "clear-config"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ascii_table_rs",
  "clear-config-derive",
@@ -22,7 +22,7 @@ dependencies = [
 
 [[package]]
 name = "clear-config-derive"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "proc-macro2",
  "quote",
