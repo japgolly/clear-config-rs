@@ -154,11 +154,9 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
         }
 
         let raw_key = key.unwrap_or_else(|| field_ident.to_string().to_ascii_uppercase());
-        let prefix = field_key_prefix
-            .as_deref()
-            .or(struct_key_prefix.as_deref())
-            .unwrap_or("");
-        let key_str = format!("{prefix}{raw_key}");
+        let field_prefix = field_key_prefix.as_deref().unwrap_or("");
+        let key_str = format!("{field_prefix}{raw_key}");
+        let prefix_str = field_prefix;
 
         if secret {
             field_bindings.push(quote! {
@@ -176,11 +174,12 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
                 None => quote! { ::core::option::Option::None },
             };
             field_bindings.push(quote! {
-                let #field_ident = __Loader::<#field_ty>::new().read_field(ctx, #key_str, #default_tokens);
+                let #field_ident = __Loader::<#field_ty>::new().read_field(ctx, #key_str, #prefix_str, #default_tokens);
             });
         }
     }
 
+    let struct_prefix = struct_key_prefix.unwrap_or_default();
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let expanded = quote! {
@@ -197,24 +196,48 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
 
             trait __LoadDef {
                 type Out;
-                fn read_field(self, ctx: &mut ConfigContext, key: &str, default: ::core::option::Option<&str>) -> ::core::option::Option<Self::Out>;
+                fn read_field(
+                    self,
+                    ctx: &mut ConfigContext,
+                    key: &str,
+                    prefix: &str,
+                    default: ::core::option::Option<&str>,
+                ) -> ::core::option::Option<Self::Out>;
             }
 
             impl<T: ConfigReader> __LoadDef for __Loader<T> {
                 type Out = T;
-                fn read_field(self, ctx: &mut ConfigContext, _key: &str, _default: ::core::option::Option<&str>) -> ::core::option::Option<T> {
-                    T::read(ctx)
+                fn read_field(
+                    self,
+                    ctx: &mut ConfigContext,
+                    _key: &str,
+                    prefix: &str,
+                    _default: ::core::option::Option<&str>,
+                ) -> ::core::option::Option<T> {
+                    ctx.with_key_prefix(prefix, |ctx| T::read(ctx))
                 }
             }
 
             trait __LoadParser {
                 type Out;
-                fn read_field(self, ctx: &mut ConfigContext, key: &str, default: ::core::option::Option<&str>) -> ::core::option::Option<Self::Out>;
+                fn read_field(
+                    self,
+                    ctx: &mut ConfigContext,
+                    key: &str,
+                    prefix: &str,
+                    default: ::core::option::Option<&str>,
+                ) -> ::core::option::Option<Self::Out>;
             }
 
             impl<T: ConfigParser> __LoadParser for &__Loader<T> {
                 type Out = T;
-                fn read_field(self, ctx: &mut ConfigContext, key: &str, default: ::core::option::Option<&str>) -> ::core::option::Option<T> {
+                fn read_field(
+                    self,
+                    ctx: &mut ConfigContext,
+                    key: &str,
+                    _prefix: &str,
+                    default: ::core::option::Option<&str>,
+                ) -> ::core::option::Option<T> {
                     let key_str = ::std::string::String::from(key);
                     match default {
                         ::core::option::Option::Some(def) => ctx.get_or_parse::<T>(&key_str, def),
@@ -225,12 +248,14 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
 
             impl #impl_generics ConfigReader for #name #ty_generics #where_clause {
                 fn read(ctx: &mut ConfigContext) -> ::core::option::Option<Self> {
-                    #(#field_bindings)*
+                    ctx.with_key_prefix(#struct_prefix, |ctx| {
+                        #(#field_bindings)*
 
-                    ::core::option::Option::Some(#name {
-                        #(
-                            #field_names: #field_names?,
-                        )*
+                        ::core::option::Option::Some(#name {
+                            #(
+                                #field_names: #field_names?,
+                            )*
+                        })
                     })
                 }
             }

@@ -53,6 +53,7 @@ pub struct ConfigContext {
     secret_keywords_lowercase: HashSet<String>,
     keys_seen: HashMap<String, Option<String>>, // key -> default
     read_errors: Vec<ReadError>,
+    key_prefix: String,
 }
 
 impl Default for ConfigContext {
@@ -72,11 +73,33 @@ impl ConfigContext {
             secret_keywords_lowercase,
             keys_seen: HashMap::new(),
             read_errors: Vec::new(),
+            key_prefix: String::new(),
         }
     }
 
-    pub fn add_secret_key(&mut self, kw: &str) {
-        self.secret_keys_lowercase.insert(kw.to_ascii_lowercase());
+    pub fn with_key_prefix<R>(&mut self, prefix: &str, f: impl FnOnce(&mut Self) -> R) -> R {
+        if prefix.is_empty() {
+            f(self)
+        } else {
+            let prev_len = self.key_prefix.len();
+            self.key_prefix.push_str(prefix);
+            let res = f(self);
+            self.key_prefix.truncate(prev_len);
+            res
+        }
+    }
+
+    fn full_key(&self, key: &str) -> String {
+        if self.key_prefix.is_empty() {
+            key.to_string()
+        } else {
+            format!("{}{key}", self.key_prefix)
+        }
+    }
+
+    pub fn add_secret_key(&mut self, k: &str) {
+        self.secret_keys_lowercase
+            .insert(self.full_key(k).to_ascii_lowercase());
     }
 
     pub fn add_secret_keyword(&mut self, kw: &str) {
@@ -108,15 +131,13 @@ impl ConfigContext {
         key: &String,
         default: Option<String>,
     ) -> Option<Option<A>> {
-        self.keys_seen.insert(key.clone(), default);
-        match self.sources.iter().find_map(|src| src.get(key)) {
+        let full_key = self.full_key(key);
+        self.keys_seen.insert(full_key.clone(), default);
+        match self.sources.iter().find_map(|src| src.get(&full_key)) {
             Some(str) => match A::parse_config(str) {
                 Ok(a) => Some(Some(a)),
                 Err(msg) => {
-                    self.read_errors.push(ReadError {
-                        key: key.clone(),
-                        msg,
-                    });
+                    self.read_errors.push(ReadError { key: full_key, msg });
                     None
                 }
             },
@@ -143,7 +164,7 @@ impl ConfigContext {
                 Ok(a) => Some(a),
                 Err(msg) => {
                     self.read_errors.push(ReadError {
-                        key: key.clone(),
+                        key: self.full_key(key),
                         msg,
                     });
                     None
@@ -158,7 +179,7 @@ impl ConfigContext {
             Some(Some(a)) => Some(a),
             Some(None) => {
                 self.read_errors.push(ReadError {
-                    key: key.clone(),
+                    key: self.full_key(key),
                     msg: ErrorMsg(String::from("not specified")),
                 });
                 None

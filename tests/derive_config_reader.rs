@@ -333,3 +333,91 @@ fn test_secret_field_attribute() {
     assert!(!report.contains("1234"));
     assert!(report.contains("Obfuscated"));
 }
+
+// 9. Test prefix composition on nested structs
+#[derive(ConfigReader, Debug, PartialEq)]
+#[config(key_prefix = "DB_")]
+struct DbConfig {
+    host: String,
+    #[config(default = "5432")]
+    port: u16,
+    user: Option<String>,
+}
+
+#[derive(ConfigReader, Debug, PartialEq)]
+#[config(key_prefix = "APP_")]
+struct MultiDbAppConfig {
+    #[config(key_prefix = "PRIMARY_")]
+    primary: DbConfig,
+    #[config(key_prefix = "REPLICA_")]
+    replica: DbConfig,
+    fallback: DbConfig,
+}
+
+#[test]
+fn test_nested_struct_prefix_composition() {
+    let mut ctx = make_context(vec![
+        ("APP_PRIMARY_DB_HOST", "primary.db.internal"),
+        ("APP_PRIMARY_DB_PORT", "5433"),
+        ("APP_PRIMARY_DB_USER", "admin"),
+        ("APP_REPLICA_DB_HOST", "replica.db.internal"),
+        ("APP_DB_HOST", "fallback.db.internal"),
+    ]);
+
+    let cfg = ctx.read::<MultiDbAppConfig>().unwrap();
+    assert_eq!(
+        cfg,
+        MultiDbAppConfig {
+            primary: DbConfig {
+                host: "primary.db.internal".to_string(),
+                port: 5433,
+                user: Some("admin".to_string()),
+            },
+            replica: DbConfig {
+                host: "replica.db.internal".to_string(),
+                port: 5432,
+                user: None,
+            },
+            fallback: DbConfig {
+                host: "fallback.db.internal".to_string(),
+                port: 5432,
+                user: None,
+            },
+        }
+    );
+
+    let report = ctx.report_used();
+    println!("{}", report);
+    let expect = r"
+╭──────────────────────────────────────────────────────╮
+│                    Config Report                     │
+├─────────────────────┬──────────────────────┬─────────┤
+│ Key                 │ Test                 │ Default │
+├─────────────────────┼──────────────────────┼─────────┤
+│ APP_DB_HOST         │ fallback.db.internal │         │
+│ APP_DB_PORT         │                      │ 5432    │
+│ APP_DB_USER         │                      │ None    │
+│ APP_PRIMARY_DB_HOST │ primary.db.internal  │         │
+│ APP_PRIMARY_DB_PORT │ 5433                 │ 5432    │
+│ APP_PRIMARY_DB_USER │ admin                │ None    │
+│ APP_REPLICA_DB_HOST │ replica.db.internal  │         │
+│ APP_REPLICA_DB_PORT │                      │ 5432    │
+│ APP_REPLICA_DB_USER │                      │ None    │
+╰─────────────────────┴──────────────────────┴─────────╯
+    ";
+    assert_eq!(report, expect.trim());
+}
+
+#[test]
+fn test_nested_struct_prefix_composition_missing_field_error() {
+    let mut ctx = make_context(vec![
+        ("APP_REPLICA_DB_HOST", "replica.db.internal"),
+        ("APP_DB_HOST", "fallback.db.internal"),
+    ]);
+
+    let err = ctx.read::<MultiDbAppConfig>().unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("APP_PRIMARY_DB_HOST: not specified")
+    );
+}

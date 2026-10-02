@@ -174,3 +174,38 @@ Example Output:
 │ USERNAME │ alice                 │                       │
 ╰──────────┴───────────────────────┴───────────────────────╯
 ```
+
+## Key prefixing
+
+`key_prefix` can be added to both structs and fields during derivation.
+
+```rs
+#[derive(ConfigReader, Debug)]
+#[config(key_prefix = "DB_")]
+struct DbConfig {
+    host: String,
+    port: u16,
+}
+
+#[derive(ConfigReader, Debug)]
+#[config(key_prefix = "APP_")]
+struct MultiDbAppConfig {
+    #[config(key_prefix = "PRIMARY_")] primary: DbConfig,
+    #[config(key_prefix = "REPLICA_")] replica: DbConfig,
+}
+```
+
+Example output:
+
+```
+╭──────────────────────────────────────────────────────╮
+│                    Config Report                     │
+├─────────────────────┬──────────────────────┬─────────┤
+│ Key                 │ Test                 │ Default │
+├─────────────────────┼──────────────────────┼─────────┤
+│ APP_PRIMARY_DB_HOST │ primary.db.internal  │         │
+│ APP_PRIMARY_DB_PORT │ 5432                 │         │
+│ APP_REPLICA_DB_HOST │ replica.db.internal  │         │
+│ APP_REPLICA_DB_PORT │ 5433                 │         │
+╰─────────────────────┴──────────────────────┴─────────╯
+```

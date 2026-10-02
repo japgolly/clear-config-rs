@@ -1,6 +1,8 @@
 # 1.0.0
 
 * Add a `ConfigParser` for `Vec`
+* Support `key_prefix` on derivation fields
+* Add `ctx.with_key_prefix`
 
 # 0.3.0
 
