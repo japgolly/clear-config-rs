@@ -30,7 +30,7 @@ struct ServerConfig {
 fn main() {
     let mut ctx = ConfigContext::new(vec![
         ConfigSource::env(),
-        ConfigSource::env_file("examples/.env"),
+        ConfigSource::env_file("examples/.env", true),
     ]);
     let result = ctx.read::<AppConfig>();
     println!("{}", ctx.report_used());

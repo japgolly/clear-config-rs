@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::ErrorKind;
 
 use crate::ErrorMsg;
 
@@ -27,10 +28,13 @@ impl ConfigSource {
         }
     }
 
-    pub fn env_file(filename: &str) -> Self {
+    pub fn env_file(filename: &str, mandatory: bool) -> Self {
         let name = filename.to_string();
         match std::fs::read_to_string(filename) {
             Ok(content) => Self::env_file_content(name, content),
+            Err(e) if e.kind() == ErrorKind::NotFound && !mandatory => {
+                Self::env_file_content(name, "".to_string())
+            }
             Err(e) => {
                 let err_msg = ErrorMsg(format!("{}: {}", filename, e));
                 ConfigSource {
@@ -82,8 +86,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn env_file_not_found() {
-        let src = ConfigSource::env_file(".env.missing");
+    fn env_file_not_found_optional() {
+        let src = ConfigSource::env_file(".env.missing", false);
+        assert_eq!(
+            src,
+            ConfigSource {
+                name: ".env.missing".to_string(),
+                data: Ok(HashMap::new()),
+            }
+        )
+    }
+
+    #[test]
+    fn env_file_not_found_mandatory() {
+        let src = ConfigSource::env_file(".env.missing", true);
         assert_eq!(
             src,
             ConfigSource {

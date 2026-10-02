@@ -1,6 +1,6 @@
 # 0.3.0
 
-Add `ConfigSource::env_file(filename)` for loading .env files
+Add `ConfigSource::env_file(filename, mandatory)` for loading `.env` files
 
 # 0.2.0
 
