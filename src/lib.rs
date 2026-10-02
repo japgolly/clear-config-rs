@@ -7,7 +7,7 @@ pub use crate::parsing::*;
 pub use crate::source::*;
 pub use clear_config_derive::{ConfigParser, ConfigReader};
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::{Debug, Display};
 
 pub trait ConfigReader {
@@ -49,6 +49,7 @@ impl std::error::Error for ReadErrors {}
 
 pub struct ConfigContext {
     pub sources: Vec<ConfigSource>,
+    secret_keywords_lowercase: HashSet<String>,
     keys_seen: HashMap<String, Option<String>>, // key -> default
     read_errors: Vec<ReadError>,
 }
@@ -61,11 +62,20 @@ impl Default for ConfigContext {
 
 impl ConfigContext {
     pub fn new(sources: Vec<ConfigSource>) -> Self {
+        let mut secret_keywords_lowercase = HashSet::new();
+        secret_keywords_lowercase.insert("password".to_string());
+        secret_keywords_lowercase.insert("secret".to_string());
         ConfigContext {
             sources,
+            secret_keywords_lowercase,
             keys_seen: HashMap::new(),
             read_errors: Vec::new(),
         }
+    }
+
+    pub fn add_secret_keyword(&mut self, kw: &str) {
+        self.secret_keywords_lowercase
+            .insert(kw.to_ascii_lowercase());
     }
 
     pub fn read<A: ConfigReader>(&mut self) -> Result<A, ReadErrors> {
@@ -167,8 +177,21 @@ impl ConfigContext {
 
         let all_keys: BTreeSet<&String> = self.keys_seen.keys().collect();
 
-        fn push_value(row: &mut Vec<CellValue>, value: Option<String>) {
+        fn push_value(
+            ctx: &ConfigContext,
+            row: &mut Vec<CellValue>,
+            key_lowercase: &String,
+            value: Option<String>,
+        ) {
+            let secret = ctx
+                .secret_keywords_lowercase
+                .iter()
+                .any(|kw| key_lowercase.contains(kw));
             let v = match value {
+                Some(v) if secret => {
+                    let hash = fnv1a_hash(&v);
+                    format!("Obfuscated ({hash:X})")
+                }
                 Some(v) if v.is_empty() => "\"\"".to_string(),
                 Some(v) => v,
                 None => "".to_string(),
@@ -177,23 +200,33 @@ impl ConfigContext {
         }
 
         for key in all_keys {
+            let key_lowercase = key.to_ascii_lowercase();
             let mut row = Vec::new();
 
             row.push(CellValue::Str(key.to_string()));
 
             for s in &self.sources {
                 let value = s.get(key).cloned();
-                push_value(&mut row, value);
+                push_value(self, &mut row, &key_lowercase, value);
             }
 
             let default = self.keys_seen.get(key).unwrap().clone();
-            push_value(&mut row, default);
+            push_value(self, &mut row, &key_lowercase, default);
 
             table.add_row(row);
         }
 
         table.render_to_string().trim().to_string()
     }
+}
+
+fn fnv1a_hash(s: &str) -> u32 {
+    let mut hash: u32 = 0x811c9dc5; // 32-bit FNV offset basis
+    for &byte in s.as_bytes() {
+        hash ^= byte as u32;
+        hash = hash.wrapping_mul(0x01000193); // 32-bit FNV prime
+    }
+    hash
 }
 
 #[cfg(test)]
@@ -233,6 +266,7 @@ mod tests {
         let mut data1 = HashMap::new();
         data1.insert("A".to_string(), "val_a".to_string());
         data1.insert("B".to_string(), "".to_string());
+        data1.insert("DB_PASSWORD".to_string(), "abc".to_string());
 
         let mut data2 = HashMap::new();
         data2.insert("B".to_string(), "from_src2".to_string());
@@ -254,22 +288,27 @@ mod tests {
         let _ = ctx.get_or_parse::<u16>(&"C".to_string(), "9000");
         let _ = ctx.get_or_parse::<String>(&"D".to_string(), "");
         let _ = ctx.get_or_use::<bool>(&"E".to_string(), true);
+        let _ = ctx.get_or_parse::<String>(&"DB_PASSWORD".to_string(), "def");
 
         let actual = ctx.report_used();
         let expect = r#"
-╭───────────────────────────────────╮
-│           Config Report           │
-├─────┬───────┬───────────┬─────────┤
-│ Key │ Src1  │ Src2      │ Default │
-├─────┼───────┼───────────┼─────────┤
-│ A   │ val_a │           │         │
-│ B   │ ""    │ from_src2 │ None    │
-│ C   │       │ val_c     │ 9000    │
-│ D   │       │           │ ""      │
-│ E   │       │           │ true    │
-╰─────┴───────┴───────────┴─────────╯
+╭─────────────────────────────────────────────────────────────────────────╮
+│                              Config Report                              │
+├─────────────┬───────────────────────┬───────────┬───────────────────────┤
+│ Key         │ Src1                  │ Src2      │ Default               │
+├─────────────┼───────────────────────┼───────────┼───────────────────────┤
+│ A           │ val_a                 │           │                       │
+│ B           │ ""                    │ from_src2 │ None                  │
+│ C           │                       │ val_c     │ 9000                  │
+│ D           │                       │           │ ""                    │
+│ DB_PASSWORD │ Obfuscated (1A47E90B) │           │ Obfuscated (C5597E8C) │
+│ E           │                       │           │ true                  │
+╰─────────────┴───────────────────────┴───────────┴───────────────────────╯
 "#
         .trim();
+        if actual != expect {
+            println!("{}", actual);
+        }
         assert_eq!(actual, expect);
     }
 }

@@ -2,6 +2,7 @@
 
 * Add `ConfigSource::env_file(filename, mandatory)` for loading `.env` files
 * Display empty values as `""` in the config report
+* Obfuscate sensitive values in the config report (by default, any keys containing `SECRET` or `PASSWORD`)
 
 # 0.2.0
 
