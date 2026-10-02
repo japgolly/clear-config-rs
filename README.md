@@ -201,7 +201,7 @@ Example output:
 ╭──────────────────────────────────────────────────────╮
 │                    Config Report                     │
 ├─────────────────────┬──────────────────────┬─────────┤
-│ Key                 │ Test                 │ Default │
+│ Key                 │ Environment          │ Default │
 ├─────────────────────┼──────────────────────┼─────────┤
 │ APP_PRIMARY_DB_HOST │ primary.db.internal  │         │
 │ APP_PRIMARY_DB_PORT │ 5432                 │         │
