@@ -28,13 +28,6 @@ This example sets up the following:
 use clear_config::*;
 use std::time::Duration;
 
-#[derive(ConfigParser, Debug)]
-enum Environment {
-    Dev,
-    Staging,
-    Prod,
-}
-
 #[derive(ConfigReader, Debug)]
 struct AppConfig {
     debug: bool,
@@ -42,6 +35,13 @@ struct AppConfig {
     server: ServerConfig,
     #[config(default = "30 sec")]
     timeout: Duration,
+}
+
+#[derive(ConfigParser, Debug)]
+enum Environment {
+    Dev,
+    Staging,
+    Prod,
 }
 
 #[derive(ConfigReader, Debug)]
