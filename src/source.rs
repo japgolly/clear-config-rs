@@ -64,8 +64,8 @@ impl ConfigSource {
                 _ => (),
             };
             let i = i.unwrap();
-            let name = &line[..i];
-            let value = &line[i + 1..];
+            let name = line[..i].trim();
+            let value = line[i + 1..].trim();
             map.insert(name.to_string(), value.to_string());
         }
         let data = if errors.is_empty() {
@@ -119,11 +119,13 @@ mod tests {
 X=abc
 Y_Y=def
 Z=
+T = trimmed
         ";
         let mut expect = HashMap::new();
         expect.insert("X".to_string(), "abc".to_string());
         expect.insert("Y_Y".to_string(), "def".to_string());
         expect.insert("Z".to_string(), "".to_string());
+        expect.insert("T".to_string(), "trimmed".to_string());
         let name = String::from(".env");
         let src = ConfigSource::env_file_content(name.clone(), content.to_string());
         assert_eq!(
