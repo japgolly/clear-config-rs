@@ -140,7 +140,9 @@ Example output:
 ## Secrets
 
 Some config values are sensitive and shouldn't be rendered in the report.
-By default, any keys containing `SECRET` or `PASSWORD` (case-insensitive) are considered secret.
+
+By default, any keys containing the keywords `SECRET` or `PASSWORD` (case-insensitive) are considered secret.
+Configure further by calling `ctx.add_secret_key` or `ctx.add_secret_keyword`.
 
 You can also annotate your fields during derivation as being `secret`.
 
@@ -154,8 +156,8 @@ struct AppConfig {
     #[config(secret)]
     token: String,
 
-    #[config(secret, key = "PIN_CODE")]
-    pin: Option<u32>,
+    #[config(secret, key = "PIN_CODE", default = "1234")]
+    pin: u32,
 }
 ```
 
@@ -167,7 +169,7 @@ Example Output:
 ├──────────┬───────────────────────┬───────────────────────┤
 │ Key      │ Environment           │ Default               │
 ├──────────┼───────────────────────┼───────────────────────┤
-│ PIN_CODE │ Obfuscated (FDC422FD) │ Obfuscated (304FF7FB) │
+│ PIN_CODE │ Obfuscated (028CD709) │ Obfuscated (FDC422FD) │
 │ TOKEN    │ Obfuscated (FEC13746) │                       │
 │ USERNAME │ alice                 │                       │
 ╰──────────┴───────────────────────┴───────────────────────╯
