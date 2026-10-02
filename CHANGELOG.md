@@ -1,3 +1,7 @@
+# 1.0.0
+
+* Add a `ConfigParser` for `Vec`
+
 # 0.3.0
 
 * Add `ConfigSource::env_file(filename, mandatory)` for loading `.env` files

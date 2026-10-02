@@ -96,6 +96,18 @@ impl ConfigParser for PathBuf {
     }
 }
 
+impl<A: ConfigParser> ConfigParser for Vec<A> {
+    fn parse_config(s: &str) -> Result<Self, ErrorMsg> {
+        let s = s.trim();
+        if s.is_empty() {
+            return Ok(Vec::new());
+        }
+        s.split(',')
+            .map(|item| A::parse_config(item.trim()))
+            .collect()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -244,5 +256,15 @@ mod tests {
     #[test]
     fn test_duration_bad_unit() {
         assert_parse_fails::<Duration>("30 spears", "\"spears\" is not a valid time unit");
+    }
+
+    #[test]
+    fn test_vec_string() {
+        assert_parses("a,b", vec!["a".to_string(), "b".to_string()]);
+    }
+
+    #[test]
+    fn test_vec_i32() {
+        assert_parses("8080 , 8081", vec![8080, 8081]);
     }
 }
