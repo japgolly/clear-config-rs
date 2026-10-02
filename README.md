@@ -117,7 +117,7 @@ you can manually specify config sources:
 ```rs
     let mut ctx = ConfigContext::new(vec![
         ConfigSource::env(),
-        ConfigSource::env_file(".env"),
+        ConfigSource::env_file(".env", true),
     ]);
 ```
 
