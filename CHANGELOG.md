@@ -1,6 +1,7 @@
 # 0.3.0
 
-Add `ConfigSource::env_file(filename, mandatory)` for loading `.env` files
+* Add `ConfigSource::env_file(filename, mandatory)` for loading `.env` files
+* Display empty values as `""` in the config report
 
 # 0.2.0
 

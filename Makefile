@@ -4,7 +4,7 @@ demo:
 	@echo
 	DEBUG=no cargo run --example demo-env_file
 	@echo
-	ENV=local TIMEOUT=what cargo run --example demo-derived
+	ENV=local SERVER_HOST= TIMEOUT=what cargo run --example demo-derived
 
 t: test
 test:

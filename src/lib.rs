@@ -167,18 +167,27 @@ impl ConfigContext {
 
         let all_keys: BTreeSet<&String> = self.keys_seen.keys().collect();
 
+        fn push_value(row: &mut Vec<CellValue>, value: Option<String>) {
+            let v = match value {
+                Some(v) if v.is_empty() => "\"\"".to_string(),
+                Some(v) => v,
+                None => "".to_string(),
+            };
+            row.push(CellValue::Str(v));
+        }
+
         for key in all_keys {
             let mut row = Vec::new();
 
             row.push(CellValue::Str(key.to_string()));
 
             for s in &self.sources {
-                let value = s.get(key).cloned().unwrap_or_default();
-                row.push(CellValue::Str(value));
+                let value = s.get(key).cloned();
+                push_value(&mut row, value);
             }
 
-            let default = self.keys_seen.get(key).unwrap().clone().unwrap_or_default();
-            row.push(CellValue::Str(default));
+            let default = self.keys_seen.get(key).unwrap().clone();
+            push_value(&mut row, default);
 
             table.add_row(row);
         }
@@ -217,5 +226,50 @@ mod tests {
         let actual = format!("{}", errors);
         let expect = "Config errors:\n  * A: not specified\n  * X: not specified";
         assert_eq!(actual.as_str(), expect);
+    }
+
+    #[test]
+    fn report_used() {
+        let mut data1 = HashMap::new();
+        data1.insert("A".to_string(), "val_a".to_string());
+        data1.insert("B".to_string(), "".to_string());
+
+        let mut data2 = HashMap::new();
+        data2.insert("B".to_string(), "from_src2".to_string());
+        data2.insert("C".to_string(), "val_c".to_string());
+
+        let mut ctx = ConfigContext::new(vec![
+            ConfigSource {
+                name: "Src1".to_string(),
+                data: Ok(data1),
+            },
+            ConfigSource {
+                name: "Src2".to_string(),
+                data: Ok(data2),
+            },
+        ]);
+
+        let _ = ctx.need::<String>(&"A".to_string());
+        let _ = ctx.get::<String>(&"B".to_string());
+        let _ = ctx.get_or_parse::<u16>(&"C".to_string(), "9000");
+        let _ = ctx.get_or_parse::<String>(&"D".to_string(), "");
+        let _ = ctx.get_or_use::<bool>(&"E".to_string(), true);
+
+        let actual = ctx.report_used();
+        let expect = r#"
+╭───────────────────────────────────╮
+│           Config Report           │
+├─────┬───────┬───────────┬─────────┤
+│ Key │ Src1  │ Src2      │ Default │
+├─────┼───────┼───────────┼─────────┤
+│ A   │ val_a │           │         │
+│ B   │ ""    │ from_src2 │ None    │
+│ C   │       │ val_c     │ 9000    │
+│ D   │       │           │ ""      │
+│ E   │       │           │ true    │
+╰─────┴───────┴───────────┴─────────╯
+"#
+        .trim();
+        assert_eq!(actual, expect);
     }
 }
