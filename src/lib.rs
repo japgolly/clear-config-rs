@@ -197,7 +197,7 @@ impl ConfigContext {
             let v = match value {
                 Some(v) if secret => {
                     let hash = fnv1a_hash(&v);
-                    format!("Obfuscated ({hash:X})")
+                    format!("Obfuscated ({hash:08X})")
                 }
                 Some(v) if v.is_empty() => "\"\"".to_string(),
                 Some(v) => v,
