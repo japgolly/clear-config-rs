@@ -298,3 +298,38 @@ fn test_key_prefix_missing_required_field_error() {
             .contains("SERVER_TIMEOUT_SECONDS: not specified")
     );
 }
+
+// 8. Test secret attribute on field
+#[derive(ConfigReader, Debug, PartialEq)]
+struct SecretConfig {
+    username: String,
+    #[config(secret)]
+    token: String,
+    #[config(secret, key = "PIN_CODE")]
+    pin: Option<u32>,
+}
+
+#[test]
+fn test_secret_field_attribute() {
+    let mut ctx = make_context(vec![
+        ("USERNAME", "alice"),
+        ("TOKEN", "my_super_secret_token"),
+        ("PIN_CODE", "1234"),
+    ]);
+
+    let cfg = ctx.read::<SecretConfig>().unwrap();
+    assert_eq!(
+        cfg,
+        SecretConfig {
+            username: "alice".to_string(),
+            token: "my_super_secret_token".to_string(),
+            pin: Some(1234),
+        }
+    );
+
+    let report = ctx.report_used();
+    assert!(report.contains("alice"));
+    assert!(!report.contains("my_super_secret_token"));
+    assert!(!report.contains("1234"));
+    assert!(report.contains("Obfuscated"));
+}

@@ -136,3 +136,39 @@ Example output:
 │ TIMEOUT     │             │ 1min      │ 30 sec  │
 ╰─────────────┴─────────────┴───────────┴─────────╯
 ```
+
+## Secrets
+
+Some config values are sensitive and shouldn't be rendered in the report.
+By default, any keys containing `SECRET` or `PASSWORD` (case-insensitive) are considered secret.
+
+You can also annotate your fields during derivation as being `secret`.
+
+Example:
+
+```rs
+#[derive(ConfigReader, Debug, PartialEq)]
+struct AppConfig {
+    username: String,
+
+    #[config(secret)]
+    token: String,
+
+    #[config(secret, key = "PIN_CODE")]
+    pin: Option<u32>,
+}
+```
+
+Example Output:
+
+```
+╭──────────────────────────────────────────────────────────╮
+│                      Config Report                       │
+├──────────┬───────────────────────┬───────────────────────┤
+│ Key      │ Environment           │ Default               │
+├──────────┼───────────────────────┼───────────────────────┤
+│ PIN_CODE │ Obfuscated (FDC422FD) │ Obfuscated (304FF7FB) │
+│ TOKEN    │ Obfuscated (FEC13746) │                       │
+│ USERNAME │ alice                 │                       │
+╰──────────┴───────────────────────┴───────────────────────╯
+```

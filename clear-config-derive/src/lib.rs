@@ -120,6 +120,7 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
         let mut key = None;
         let mut default = None;
         let mut field_key_prefix = None;
+        let mut secret = false;
 
         for attr in &field.attrs {
             if attr.path().is_ident("config") {
@@ -139,8 +140,11 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
                         let s: syn::LitStr = value.parse()?;
                         field_key_prefix = Some(s.value());
                         Ok(())
+                    } else if meta.path.is_ident("secret") {
+                        secret = true;
+                        Ok(())
                     } else {
-                        Err(meta.error("unrecognized config attribute on field (supported: `key`, `default`, `key_prefix`)"))
+                        Err(meta.error("unrecognized config attribute on field (supported: `key`, `default`, `key_prefix`, `secret`)"))
                     }
                 });
                 if let Err(e) = res {
@@ -155,6 +159,12 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
             .or(struct_key_prefix.as_deref())
             .unwrap_or("");
         let key_str = format!("{prefix}{raw_key}");
+
+        if secret {
+            field_bindings.push(quote! {
+                ctx.add_secret_key(#key_str);
+            });
+        }
 
         if let Some(inner_ty) = extract_option_inner(field_ty) {
             field_bindings.push(quote! {

@@ -11,6 +11,8 @@ enum Environment {
 #[allow(dead_code)]
 #[derive(ConfigReader, Debug)]
 struct AppConfig {
+    #[config(secret)]
+    api_key: String,
     debug: bool,
     env: Environment,
     server: ServerConfig,

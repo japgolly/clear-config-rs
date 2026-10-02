@@ -4,6 +4,7 @@
 * Display empty values as `""` in the config report
 * Obfuscate sensitive values in the config report (by default, any keys containing `SECRET` or `PASSWORD`)
 * Add `ConfigContext.add_secret_key` and `ConfigContext.add_secret_keyword`
+* Support `#[config(secret)]` in `ConfigReader` derivation
 
 # 0.2.0
 
