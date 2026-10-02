@@ -49,6 +49,7 @@ impl std::error::Error for ReadErrors {}
 
 pub struct ConfigContext {
     pub sources: Vec<ConfigSource>,
+    secret_keys_lowercase: HashSet<String>,
     secret_keywords_lowercase: HashSet<String>,
     keys_seen: HashMap<String, Option<String>>, // key -> default
     read_errors: Vec<ReadError>,
@@ -67,10 +68,15 @@ impl ConfigContext {
         secret_keywords_lowercase.insert("secret".to_string());
         ConfigContext {
             sources,
+            secret_keys_lowercase: HashSet::new(),
             secret_keywords_lowercase,
             keys_seen: HashMap::new(),
             read_errors: Vec::new(),
         }
+    }
+
+    pub fn add_secret_key(&mut self, kw: &str) {
+        self.secret_keys_lowercase.insert(kw.to_ascii_lowercase());
     }
 
     pub fn add_secret_keyword(&mut self, kw: &str) {
@@ -183,10 +189,11 @@ impl ConfigContext {
             key_lowercase: &String,
             value: Option<String>,
         ) {
-            let secret = ctx
-                .secret_keywords_lowercase
-                .iter()
-                .any(|kw| key_lowercase.contains(kw));
+            let secret = ctx.secret_keys_lowercase.contains(key_lowercase)
+                || ctx
+                    .secret_keywords_lowercase
+                    .iter()
+                    .any(|kw| key_lowercase.contains(kw));
             let v = match value {
                 Some(v) if secret => {
                     let hash = fnv1a_hash(&v);
@@ -265,11 +272,11 @@ mod tests {
     fn report_used() {
         let mut data1 = HashMap::new();
         data1.insert("A".to_string(), "val_a".to_string());
-        data1.insert("B".to_string(), "".to_string());
+        data1.insert("AB".to_string(), "".to_string());
         data1.insert("DB_PASSWORD".to_string(), "abc".to_string());
 
         let mut data2 = HashMap::new();
-        data2.insert("B".to_string(), "from_src2".to_string());
+        data2.insert("AB".to_string(), "from_src2".to_string());
         data2.insert("C".to_string(), "val_c".to_string());
 
         let mut ctx = ConfigContext::new(vec![
@@ -284,11 +291,12 @@ mod tests {
         ]);
 
         let _ = ctx.need::<String>(&"A".to_string());
-        let _ = ctx.get::<String>(&"B".to_string());
+        let _ = ctx.get::<String>(&"AB".to_string());
         let _ = ctx.get_or_parse::<u16>(&"C".to_string(), "9000");
         let _ = ctx.get_or_parse::<String>(&"D".to_string(), "");
         let _ = ctx.get_or_use::<bool>(&"E".to_string(), true);
         let _ = ctx.get_or_parse::<String>(&"DB_PASSWORD".to_string(), "def");
+        ctx.add_secret_key("a");
 
         let actual = ctx.report_used();
         let expect = r#"
@@ -297,8 +305,8 @@ mod tests {
 ├─────────────┬───────────────────────┬───────────┬───────────────────────┤
 │ Key         │ Src1                  │ Src2      │ Default               │
 ├─────────────┼───────────────────────┼───────────┼───────────────────────┤
-│ A           │ val_a                 │           │                       │
-│ B           │ ""                    │ from_src2 │ None                  │
+│ A           │ Obfuscated (5A9FA0E8) │           │                       │
+│ AB          │ ""                    │ from_src2 │ None                  │
 │ C           │                       │ val_c     │ 9000                  │
 │ D           │                       │           │ ""                    │
 │ DB_PASSWORD │ Obfuscated (1A47E90B) │           │ Obfuscated (C5597E8C) │
