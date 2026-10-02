@@ -114,7 +114,8 @@ mod tests {
     #[test]
     fn env_file_content_ok() {
         let content = r"
-# Comment
+# Comment 1
+    # Comment 2
 
 X=abc
 Y_Y=def
