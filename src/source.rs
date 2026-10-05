@@ -88,6 +88,21 @@ impl ConfigSource {
         }
     }
 
+    pub fn memory<K, V, I>(name: &str, entries: I) -> Self
+    where
+        K: Into<String>,
+        V: Into<String>,
+        I: IntoIterator<Item = (K, V)>,
+    {
+        ConfigSource {
+            name: name.to_string(),
+            data: Ok(entries
+                .into_iter()
+                .map(|(k, v)| (k.into(), v.into()))
+                .collect()),
+        }
+    }
+
     pub fn get(&self, key: &String) -> Option<&String> {
         self.data.as_ref().ok().and_then(|m| m.get(key))
     }

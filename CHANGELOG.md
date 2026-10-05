@@ -5,6 +5,7 @@
 * Add `ctx.with_key_prefix`
 * Accept `&str` instead of `&String` in many places
 * Accept `impl AsRef<Path>` in `ConfigSource::env_file`
+* Add `ConfigSource::memory`
 
 # 0.3.0
 
