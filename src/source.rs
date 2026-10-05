@@ -193,7 +193,7 @@ mod tests {
     # Comment 2
 
 X1=abc #inline comment
-X2=abc def#inline comment
+X2 = abc def#inline comment
     export Y_Y='de#f' #inline comment
 Z=
 W1='  ' #whitespace
