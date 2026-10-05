@@ -3,6 +3,7 @@
 * Add a `ConfigParser` for `Vec`
 * Support `key_prefix` on derivation fields
 * Add `ctx.with_key_prefix`
+* Accept `&str` instead of `&String` keys in key-reading functions
 
 # 0.3.0
 

@@ -126,11 +126,7 @@ impl ConfigContext {
         }
     }
 
-    fn lookup<A: ConfigParser>(
-        &mut self,
-        key: &String,
-        default: Option<String>,
-    ) -> Option<Option<A>> {
+    fn lookup<A: ConfigParser>(&mut self, key: &str, default: Option<String>) -> Option<Option<A>> {
         let full_key = self.full_key(key);
         self.keys_seen.insert(full_key.clone(), default);
         match self.sources.iter().find_map(|src| src.get(&full_key)) {
@@ -145,11 +141,11 @@ impl ConfigContext {
         }
     }
 
-    pub fn get<A: ConfigParser>(&mut self, key: &String) -> Option<Option<A>> {
+    pub fn get<A: ConfigParser>(&mut self, key: &str) -> Option<Option<A>> {
         self.lookup(key, Some("None".to_string()))
     }
 
-    pub fn get_or_use<A: ConfigParser + Debug>(&mut self, key: &String, default: A) -> Option<A> {
+    pub fn get_or_use<A: ConfigParser + Debug>(&mut self, key: &str, default: A) -> Option<A> {
         match self.lookup(key, Some(format!("{:?}", default))) {
             Some(Some(a)) => Some(a),
             Some(None) => Some(default),
@@ -157,7 +153,7 @@ impl ConfigContext {
         }
     }
 
-    pub fn get_or_parse<A: ConfigParser>(&mut self, key: &String, default: &str) -> Option<A> {
+    pub fn get_or_parse<A: ConfigParser>(&mut self, key: &str, default: &str) -> Option<A> {
         match self.lookup(key, Some(default.to_string())) {
             Some(Some(a)) => Some(a),
             Some(None) => match A::parse_config(default) {
@@ -174,7 +170,7 @@ impl ConfigContext {
         }
     }
 
-    pub fn need<A: ConfigParser>(&mut self, key: &String) -> Option<A> {
+    pub fn need<A: ConfigParser>(&mut self, key: &str) -> Option<A> {
         match self.lookup(key, None) {
             Some(Some(a)) => Some(a),
             Some(None) => {
@@ -311,12 +307,12 @@ mod tests {
             },
         ]);
 
-        let _ = ctx.need::<String>(&"A".to_string());
-        let _ = ctx.get::<String>(&"AB".to_string());
-        let _ = ctx.get_or_parse::<u16>(&"C".to_string(), "9000");
-        let _ = ctx.get_or_parse::<String>(&"D".to_string(), "");
-        let _ = ctx.get_or_use::<bool>(&"E".to_string(), true);
-        let _ = ctx.get_or_parse::<String>(&"DB_PASSWORD".to_string(), "def");
+        let _ = ctx.need::<String>("A");
+        let _ = ctx.get::<String>("AB");
+        let _ = ctx.get_or_parse::<u16>("C", "9000");
+        let _ = ctx.get_or_parse::<String>("D", "");
+        let _ = ctx.get_or_use::<bool>("E", true);
+        let _ = ctx.get_or_parse::<String>("DB_PASSWORD", "def");
         ctx.add_secret_key("a");
 
         let actual = ctx.report_used();

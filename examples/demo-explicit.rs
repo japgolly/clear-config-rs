@@ -26,8 +26,8 @@ struct ServerConfig {
 
 impl ConfigReader for ServerConfig {
     fn read(ctx: &mut ConfigContext) -> Option<Self> {
-        let host = ctx.get::<String>(&String::from("SERVER_HOST"));
-        let port = ctx.get_or_use::<u16>(&String::from("SERVER_PORT"), 8080);
+        let host = ctx.get::<String>("SERVER_HOST");
+        let port = ctx.get_or_use::<u16>("SERVER_PORT", 8080);
         Some(ServerConfig {
             host: host?,
             port: port?,
@@ -38,9 +38,9 @@ impl ConfigReader for ServerConfig {
 impl ConfigReader for AppConfig {
     fn read(ctx: &mut ConfigContext) -> Option<Self> {
         let server = ServerConfig::read(ctx);
-        let debug = ctx.need::<bool>(&String::from("DEBUG"));
-        let timeout = ctx.get_or_parse::<Duration>(&String::from("TIMEOUT"), "30 sec");
-        let env = ctx.need::<Environment>(&String::from("ENV"));
+        let debug = ctx.need::<bool>("DEBUG");
+        let timeout = ctx.get_or_parse::<Duration>("TIMEOUT", "30 sec");
+        let env = ctx.need::<Environment>("ENV");
         Some(AppConfig {
             server: server?,
             debug: debug?,

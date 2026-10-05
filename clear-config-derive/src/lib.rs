@@ -166,7 +166,7 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
 
         if let Some(inner_ty) = extract_option_inner(field_ty) {
             field_bindings.push(quote! {
-                let #field_ident = ctx.get::<#inner_ty>(&::std::string::String::from(#key_str));
+                let #field_ident = ctx.get::<#inner_ty>(#key_str);
             });
         } else {
             let default_tokens = match default {
@@ -238,10 +238,9 @@ pub fn derive_config_def(input: TokenStream) -> TokenStream {
                     _prefix: &str,
                     default: ::core::option::Option<&str>,
                 ) -> ::core::option::Option<T> {
-                    let key_str = ::std::string::String::from(key);
                     match default {
-                        ::core::option::Option::Some(def) => ctx.get_or_parse::<T>(&key_str, def),
-                        ::core::option::Option::None => ctx.need::<T>(&key_str),
+                        ::core::option::Option::Some(def) => ctx.get_or_parse::<T>(key, def),
+                        ::core::option::Option::None => ctx.need::<T>(key),
                     }
                 }
             }
