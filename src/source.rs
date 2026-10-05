@@ -136,7 +136,7 @@ impl ConfigSource {
         }
     }
 
-    pub fn memory<K, V, I>(name: &str, entries: I) -> Self
+    pub fn in_memory<K, V, I>(name: &str, entries: I) -> Self
     where
         K: Into<String>,
         V: Into<String>,
