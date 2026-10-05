@@ -9,6 +9,7 @@
   * Accept `impl AsRef<Path>` as the filename
   * Parse `export KEY=VALUE`
   * Reject keys with spaces
+  * Strip surrounding quotes from value
 
 # 0.3.0
 

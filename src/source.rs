@@ -62,6 +62,7 @@ impl ConfigSource {
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
+
             let i = line.find('=');
             match i {
                 Some(0) | None => {
@@ -73,6 +74,7 @@ impl ConfigSource {
                 _ => (),
             };
             let i = i.unwrap();
+
             let key = line[..i].trim();
             let key = key.strip_prefix("export ").unwrap_or(key).trim();
             if key.chars().any(|c| c.is_whitespace()) {
@@ -81,7 +83,15 @@ impl ConfigSource {
                 )));
                 continue;
             }
-            let value = line[i + 1..].trim();
+
+            let mut value = line[i + 1..].trim();
+            if value.len() >= 2
+                && ((value.starts_with('"') && value.ends_with('"'))
+                    || (value.starts_with('\'') && value.ends_with('\'')))
+            {
+                value = &value[1..value.len() - 1];
+            }
+
             map.insert(key.to_string(), value.to_string());
         }
         let data = if errors.is_empty() {
@@ -147,15 +157,15 @@ mod tests {
 
     #[test]
     fn env_file_content_ok() {
-        let content = r"
+        let content = r#"
 # Comment 1
     # Comment 2
 
 X=abc
-    export Y_Y=def
+    export Y_Y='def'
 Z=
-T = trimmed
-        ";
+T = "trimmed"
+        "#;
         let mut expect = HashMap::new();
         expect.insert("X".to_string(), "abc".to_string());
         expect.insert("Y_Y".to_string(), "def".to_string());
