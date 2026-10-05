@@ -88,6 +88,7 @@ impl ConfigSource {
             let mut quote_char = None;
             let mut whitespace = String::new();
             let mut value = String::new();
+            let mut escaped = false;
             for c in raw_value.chars() {
                 match quote_char {
                     None => {
@@ -108,7 +109,22 @@ impl ConfigSource {
                         };
                     }
                     Some(q) => {
-                        if c == q {
+                        if escaped {
+                            escaped = false;
+                            if c == 'n' {
+                                value.push('\n');
+                                continue;
+                            } else if c == 'r' {
+                                value.push('\r');
+                                continue;
+                            } else if c == 't' {
+                                value.push('\t');
+                                continue;
+                            }
+                        } else if q == '"' && c == '\\' {
+                            escaped = true;
+                            continue;
+                        } else if c == q {
                             quote_char = None;
                             continue;
                         };
@@ -199,6 +215,7 @@ Z=
 W1='  ' #whitespace
 W2='  ' x #whitespace
 T = "trimmed"
+E="escape \" \\ \n"
         "#;
         let mut expect = HashMap::new();
         expect.insert("X1".to_string(), "abc".to_string());
@@ -208,6 +225,7 @@ T = "trimmed"
         expect.insert("W1".to_string(), "  ".to_string());
         expect.insert("W2".to_string(), "   x".to_string());
         expect.insert("T".to_string(), "trimmed".to_string());
+        expect.insert("E".to_string(), "escape \" \\ \n".to_string());
         let name = ".env";
         let src = ConfigSource::env_file_content(name, content);
         assert_eq!(

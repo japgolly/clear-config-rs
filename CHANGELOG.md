@@ -9,7 +9,7 @@
   * Accept `impl AsRef<Path>` as the filename
   * Parse `export KEY=VALUE`
   * Reject keys with spaces
-  * Handle quoted values
+  * Handle quoted values including escaped chars
   * Handle comments after values
 * Support `#[config(rename = "blah")]` on fields of derived `ConfigParser`s
 * Support derivation of `ConfigParser` on single-field unnamed structs
