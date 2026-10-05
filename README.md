@@ -150,7 +150,7 @@ You can also annotate your fields during derivation as being `secret`.
 Example:
 
 ```rs
-#[derive(ConfigReader, Debug, PartialEq)]
+#[derive(ConfigReader, Debug)]
 struct AppConfig {
     username: String,
 
