@@ -76,7 +76,7 @@ An example of the output printed is:
 ├─────────────┬─────────────┬─────────┤
 │ Key         │ Environment │ Default │
 ├─────────────┼─────────────┼─────────┤
-│ DEBUG       │ true        │         │
+│ DEBUG       │ 1           │         │
 │ ENV         │ dev         │         │
 │ SERVER_HOST │             │ None    │
 │ SERVER_PORT │ 3000        │ 8080    │
