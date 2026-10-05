@@ -1,32 +1,43 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{Data, DeriveInput, Fields, parse_macro_input};
+use syn::{Data, DataEnum, DataStruct, DeriveInput, Fields, parse_macro_input};
 
 #[proc_macro_derive(ConfigParser, attributes(config))]
 pub fn derive_config_parser(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
-    let name = &input.ident;
+    derive_config_parser_inner(input)
+        .unwrap_or_else(|e| e.to_compile_error())
+        .into()
+}
 
-    // 1. Ensure it's an enum
-    let Data::Enum(data_enum) = &input.data else {
-        return syn::Error::new_spanned(&input.ident, "ConfigParser can only be derived for enums")
-            .to_compile_error()
-            .into();
-    };
+fn derive_config_parser_inner(input: DeriveInput) -> Result<proc_macro2::TokenStream, syn::Error> {
+    match &input.data {
+        Data::Enum(data_enum) => derive_config_parser_enum(&input, data_enum),
+        Data::Struct(data_struct) => derive_config_parser_struct(&input, data_struct),
+        Data::Union(_) => Err(syn::Error::new_spanned(
+            &input.ident,
+            "ConfigParser can only be derived for enums or single-field unnamed structs",
+        )),
+    }
+}
+
+fn derive_config_parser_enum(
+    input: &DeriveInput,
+    data_enum: &DataEnum,
+) -> Result<proc_macro2::TokenStream, syn::Error> {
+    let name = &input.ident;
 
     let mut match_arms = Vec::new();
     let mut variant_names = Vec::new();
 
-    // 2. Validate variants and build match arms
+    // Validate variants and build match arms
     for variant in &data_enum.variants {
         // Enforce unit variants (e.g., Development, not Development(String))
         if !matches!(variant.fields, Fields::Unit) {
-            return syn::Error::new_spanned(
+            return Err(syn::Error::new_spanned(
                 variant,
                 "ConfigParser derive currently only supports unit enum variants (without fields)",
-            )
-            .to_compile_error()
-            .into();
+            ));
         }
 
         let v_ident = &variant.ident;
@@ -34,7 +45,7 @@ pub fn derive_config_parser(input: TokenStream) -> TokenStream {
 
         for attr in &variant.attrs {
             if attr.path().is_ident("config") {
-                let res = attr.parse_nested_meta(|meta| {
+                attr.parse_nested_meta(|meta| {
                     if meta.path.is_ident("rename") {
                         let value = meta.value()?;
                         let s: syn::LitStr = value.parse()?;
@@ -45,10 +56,7 @@ pub fn derive_config_parser(input: TokenStream) -> TokenStream {
                             "unrecognized config attribute on enum variant (supported: `rename`)",
                         ))
                     }
-                });
-                if let Err(e) = res {
-                    return e.to_compile_error().into();
-                }
+                })?;
             }
         }
 
@@ -62,13 +70,13 @@ pub fn derive_config_parser(input: TokenStream) -> TokenStream {
 
     let expected_list = variant_names.join(", ");
     let type_name_str = name.to_string();
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
-    // 3. Generate the trait implementation
     let expanded = quote! {
         const _: () = {
             use clear_config::{ConfigParser, ErrorMsg};
 
-            impl ConfigParser for #name {
+            impl #impl_generics ConfigParser for #name #ty_generics #where_clause {
                 fn parse_config(s: &str) -> ::core::result::Result<Self, ErrorMsg> {
                     match s {
                         #(#match_arms)*
@@ -83,7 +91,65 @@ pub fn derive_config_parser(input: TokenStream) -> TokenStream {
         };
     };
 
-    TokenStream::from(expanded)
+    Ok(expanded)
+}
+
+fn derive_config_parser_struct(
+    input: &DeriveInput,
+    data_struct: &DataStruct,
+) -> Result<proc_macro2::TokenStream, syn::Error> {
+    let name = &input.ident;
+
+    let field = match &data_struct.fields {
+        Fields::Named(_) => {
+            return Err(syn::Error::new_spanned(
+                &input.ident,
+                "ConfigParser cannot be derived for structs with named fields",
+            ));
+        }
+        Fields::Unnamed(fields) if fields.unnamed.len() != 1 => {
+            return Err(syn::Error::new_spanned(
+                &input.ident,
+                format!(
+                    "ConfigParser on a struct requires exactly 1 field, found {}",
+                    fields.unnamed.len()
+                ),
+            ));
+        }
+        Fields::Unit => {
+            return Err(syn::Error::new_spanned(
+                &input.ident,
+                "ConfigParser on a struct requires exactly 1 field, found 0",
+            ));
+        }
+        Fields::Unnamed(fields) => fields.unnamed.first().unwrap(),
+    };
+
+    let inner_ty = &field.ty;
+
+    let mut generics = input.generics.clone();
+    for param in &mut generics.params {
+        if let syn::GenericParam::Type(ref mut type_param) = *param {
+            type_param
+                .bounds
+                .push(syn::parse_quote!(clear_config::ConfigParser));
+        }
+    }
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let expanded = quote! {
+        const _: () = {
+            use clear_config::{ConfigParser, ErrorMsg};
+
+            impl #impl_generics ConfigParser for #name #ty_generics #where_clause {
+                fn parse_config(s: &str) -> ::core::result::Result<Self, ErrorMsg> {
+                    <#inner_ty>::parse_config(s).map(Self)
+                }
+            }
+        };
+    };
+
+    Ok(expanded)
 }
 
 #[proc_macro_derive(ConfigReader, attributes(config))]

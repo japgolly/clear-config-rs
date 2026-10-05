@@ -12,6 +12,7 @@
   * Handle quoted values
   * Handle comments after values
 * Support `#[config(rename = "blah")]` on fields of derived `ConfigParser`s
+* Support derivation of `ConfigParser` on single-field unnamed structs
 
 # 0.3.0
 
