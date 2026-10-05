@@ -73,9 +73,16 @@ impl ConfigSource {
                 _ => (),
             };
             let i = i.unwrap();
-            let name = line[..i].trim();
+            let key = line[..i].trim();
+            let key = key.strip_prefix("export ").unwrap_or(key).trim();
+            if key.chars().any(|c| c.is_whitespace()) {
+                errors.push(SourceError(ErrorMsg(
+                    format!("{}: Invalid line: {}", name, line).to_string(),
+                )));
+                continue;
+            }
             let value = line[i + 1..].trim();
-            map.insert(name.to_string(), value.to_string());
+            map.insert(key.to_string(), value.to_string());
         }
         let data = if errors.is_empty() {
             Ok(map)
@@ -145,7 +152,7 @@ mod tests {
     # Comment 2
 
 X=abc
-Y_Y=def
+    export Y_Y=def
 Z=
 T = trimmed
         ";
@@ -172,6 +179,7 @@ T = trimmed
 
 X=abc
 Y_Y
+Z Z=invalid
 =def
 
         ";
@@ -183,6 +191,7 @@ Y_Y
                 name: name.to_string(),
                 data: Err(vec![
                     SourceError(ErrorMsg(".env: Invalid line: Y_Y".to_string())),
+                    SourceError(ErrorMsg(".env: Invalid line: Z Z=invalid".to_string())),
                     SourceError(ErrorMsg(".env: Invalid line: =def".to_string())),
                 ])
             }

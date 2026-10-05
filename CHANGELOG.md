@@ -4,8 +4,11 @@
 * Support `key_prefix` on derivation fields
 * Add `ctx.with_key_prefix`
 * Accept `&str` instead of `&String` in many places
-* Accept `impl AsRef<Path>` in `ConfigSource::env_file`
 * Add `ConfigSource::memory`
+* `ConfigSource::env_file`:
+  * Accept `impl AsRef<Path>` as the filename
+  * Parse `export KEY=VALUE`
+  * Reject keys with spaces
 
 # 0.3.0
 
