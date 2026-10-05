@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use clear_config::*;
 use std::time::Duration;
 
@@ -9,7 +11,6 @@ enum Environment {
     Production,
 }
 
-#[allow(dead_code)]
 #[derive(ConfigReader, Debug)]
 struct AppConfig {
     #[config(secret)]
@@ -21,13 +22,15 @@ struct AppConfig {
     timeout: Duration,
 }
 
-#[allow(dead_code)]
+#[derive(ConfigParser, Debug)]
+struct Port(u16);
+
 #[derive(ConfigReader, Debug)]
 #[config(key_prefix = "SERVER_")]
 struct ServerConfig {
     host: Option<String>,
     #[config(default = "8080")]
-    port: u16,
+    port: Port,
 }
 
 fn main() {

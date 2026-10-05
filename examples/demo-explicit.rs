@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use clear_config::*;
 use std::time::Duration;
 
@@ -8,7 +10,6 @@ enum Environment {
     Prod,
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 struct AppConfig {
     debug: bool,
@@ -17,7 +18,6 @@ struct AppConfig {
     timeout: Duration,
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 struct ServerConfig {
     host: Option<String>,
