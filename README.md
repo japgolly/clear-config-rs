@@ -191,8 +191,10 @@ struct DbConfig {
 #[derive(ConfigReader, Debug)]
 #[config(key_prefix = "APP_")]
 struct MultiDbAppConfig {
-    #[config(key_prefix = "PRIMARY_")] primary: DbConfig,
-    #[config(key_prefix = "REPLICA_")] replica: DbConfig,
+    #[config(key_prefix = "PRIMARY_")]
+    primary: DbConfig,
+    #[config(key_prefix = "REPLICA_")]
+    replica: DbConfig,
 }
 ```
 
