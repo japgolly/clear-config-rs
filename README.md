@@ -32,7 +32,7 @@ use std::time::Duration;
 struct AppConfig {
     debug: bool,
     env: Environment,
-    server: ServerConfig,
+    svr: ServerConfig,
     #[config(default = "30 sec")]
     timeout: Duration,
 }
@@ -82,7 +82,7 @@ An example of the output printed is:
 │ SERVER_PORT │ 3000        │ 8080    │
 │ TIMEOUT     │ 1min        │ 30 sec  │
 ╰─────────────┴─────────────┴─────────╯
-AppConfig { server: ServerConfig { host: None, port: 3000 }, debug: true, timeout: 60s, env: Dev }
+AppConfig { svr: ServerConfig { host: None, port: 3000 }, debug: true, timeout: 60s, env: Dev }
 ```
 
 On the other hand, if something goes wrong you can expect to see a set of errors:
