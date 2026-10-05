@@ -29,7 +29,7 @@ impl ConfigSource {
     }
 
     pub fn env_file(filename: &str, mandatory: bool) -> Self {
-        let name = filename.to_string();
+        let name = filename;
         match std::fs::read_to_string(filename) {
             Ok(content) => Self::env_file_content(name, content.as_str()),
             Err(e) if e.kind() == ErrorKind::NotFound && !mandatory => {
@@ -38,14 +38,14 @@ impl ConfigSource {
             Err(e) => {
                 let err_msg = ErrorMsg(format!("{}: {}", filename, e));
                 ConfigSource {
-                    name,
+                    name: name.to_string(),
                     data: Err(vec![SourceError(err_msg)]),
                 }
             }
         }
     }
 
-    pub fn env_file_content(name: String, content: &str) -> Self {
+    pub fn env_file_content(name: &str, content: &str) -> Self {
         let mut errors = Vec::new();
         let mut map = HashMap::new();
         for line in content.lines() {
@@ -73,7 +73,10 @@ impl ConfigSource {
         } else {
             Err(errors)
         };
-        ConfigSource { name, data }
+        ConfigSource {
+            name: name.to_string(),
+            data,
+        }
     }
 
     pub fn get(&self, key: &String) -> Option<&String> {
@@ -127,12 +130,12 @@ T = trimmed
         expect.insert("Y_Y".to_string(), "def".to_string());
         expect.insert("Z".to_string(), "".to_string());
         expect.insert("T".to_string(), "trimmed".to_string());
-        let name = String::from(".env");
-        let src = ConfigSource::env_file_content(name.clone(), content);
+        let name = ".env";
+        let src = ConfigSource::env_file_content(name, content);
         assert_eq!(
             src,
             ConfigSource {
-                name,
+                name: name.to_string(),
                 data: Ok(expect)
             }
         )
@@ -148,12 +151,12 @@ Y_Y
 =def
 
         ";
-        let name = String::from(".env");
-        let src = ConfigSource::env_file_content(name.clone(), content);
+        let name = ".env";
+        let src = ConfigSource::env_file_content(name, content);
         assert_eq!(
             src,
             ConfigSource {
-                name,
+                name: name.to_string(),
                 data: Err(vec![
                     SourceError(ErrorMsg(".env: Invalid line: Y_Y".to_string())),
                     SourceError(ErrorMsg(".env: Invalid line: =def".to_string())),
