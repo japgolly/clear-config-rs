@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::io::ErrorKind;
+use std::path::Path;
 
 use crate::ErrorMsg;
 
@@ -28,20 +29,28 @@ impl ConfigSource {
         }
     }
 
-    pub fn env_file(filename: &str, mandatory: bool) -> Self {
-        let name = filename;
-        match std::fs::read_to_string(filename) {
-            Ok(content) => Self::env_file_content(name, content.as_str()),
-            Err(e) if e.kind() == ErrorKind::NotFound && !mandatory => {
-                Self::env_file_content(name, "")
-            }
-            Err(e) => {
-                let err_msg = ErrorMsg(format!("{}: {}", filename, e));
+    pub fn env_file(filename: impl AsRef<Path>, mandatory: bool) -> Self {
+        match filename.as_ref().to_str() {
+            None => {
+                let err_msg = ErrorMsg("Invalid filename".to_string());
                 ConfigSource {
-                    name: name.to_string(),
+                    name: "?".to_string(),
                     data: Err(vec![SourceError(err_msg)]),
                 }
             }
+            Some(name) => match std::fs::read_to_string(name) {
+                Ok(content) => Self::env_file_content(name, content.as_str()),
+                Err(e) if e.kind() == ErrorKind::NotFound && !mandatory => {
+                    Self::env_file_content(name, "")
+                }
+                Err(e) => {
+                    let err_msg = ErrorMsg(format!("{}: {}", name, e));
+                    ConfigSource {
+                        name: name.to_string(),
+                        data: Err(vec![SourceError(err_msg)]),
+                    }
+                }
+            },
         }
     }
 
