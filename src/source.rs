@@ -215,7 +215,8 @@ Z=
 W1='  ' #whitespace
 W2='  ' x #whitespace
 T = "trimmed"
-E="escape \" \\ \n"
+E1="escape ' \" \\ \n"
+E2='escape " \" \\ \n'
         "#;
         let mut expect = HashMap::new();
         expect.insert("X1".to_string(), "abc".to_string());
@@ -225,7 +226,8 @@ E="escape \" \\ \n"
         expect.insert("W1".to_string(), "  ".to_string());
         expect.insert("W2".to_string(), "   x".to_string());
         expect.insert("T".to_string(), "trimmed".to_string());
-        expect.insert("E".to_string(), "escape \" \\ \n".to_string());
+        expect.insert("E1".to_string(), "escape ' \" \\ \n".to_string());
+        expect.insert("E2".to_string(), r#"escape " \" \\ \n"#.to_string());
         let name = ".env";
         let src = ConfigSource::env_file_content(name, content);
         assert_eq!(
