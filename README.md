@@ -41,7 +41,8 @@ struct AppConfig {
 enum Environment {
     Dev,
     Staging,
-    Prod,
+    #[config(rename = "Prod")]
+    Production,
 }
 
 #[derive(ConfigReader, Debug)]

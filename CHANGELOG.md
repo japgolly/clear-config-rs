@@ -11,6 +11,7 @@
   * Reject keys with spaces
   * Strip surrounding quotes from value
   * Accept comments after values
+* Support `#[config(rename = "blah")]` on fields of derived `ConfigParser`s
 
 # 0.3.0
 

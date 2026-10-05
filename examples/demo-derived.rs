@@ -5,7 +5,8 @@ use std::time::Duration;
 enum Environment {
     Dev,
     Staging,
-    Prod,
+    #[config(rename = "Prod")]
+    Production,
 }
 
 #[allow(dead_code)]

@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{Data, DeriveInput, Fields, parse_macro_input};
 
-#[proc_macro_derive(ConfigParser)]
+#[proc_macro_derive(ConfigParser, attributes(config))]
 pub fn derive_config_parser(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
@@ -30,7 +30,28 @@ pub fn derive_config_parser(input: TokenStream) -> TokenStream {
         }
 
         let v_ident = &variant.ident;
-        let v_str = v_ident.to_string();
+        let mut v_str = v_ident.to_string();
+
+        for attr in &variant.attrs {
+            if attr.path().is_ident("config") {
+                let res = attr.parse_nested_meta(|meta| {
+                    if meta.path.is_ident("rename") {
+                        let value = meta.value()?;
+                        let s: syn::LitStr = value.parse()?;
+                        v_str = s.value();
+                        Ok(())
+                    } else {
+                        Err(meta.error(
+                            "unrecognized config attribute on enum variant (supported: `rename`)",
+                        ))
+                    }
+                });
+                if let Err(e) = res {
+                    return e.to_compile_error().into();
+                }
+            }
+        }
+
         variant_names.push(v_str.clone());
 
         // Support case-insensitive matching

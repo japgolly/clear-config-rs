@@ -210,7 +210,8 @@ struct DatabaseConfig {
 #[derive(ConfigParser, Debug, PartialEq)]
 enum Environment {
     Dev,
-    Prod,
+    #[config(rename = "prod")]
+    Production,
 }
 
 #[derive(ConfigReader, Debug, PartialEq)]
@@ -240,7 +241,7 @@ fn test_nested_struct_and_all_features_combined() {
                 host: "db.internal".to_string(),
                 port: 5433,
             },
-            env: Environment::Prod,
+            env: Environment::Production,
             debug: true,
             verbose: false,
             log_file: Some("/var/log/app.log".to_string()),
