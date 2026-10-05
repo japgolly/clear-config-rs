@@ -10,6 +10,7 @@
   * Parse `export KEY=VALUE`
   * Reject keys with spaces
   * Strip surrounding quotes from value
+  * Accept comments after values
 
 # 0.3.0
 

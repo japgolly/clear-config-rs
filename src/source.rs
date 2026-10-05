@@ -58,8 +58,12 @@ impl ConfigSource {
         let mut errors = Vec::new();
         let mut map = HashMap::new();
         for line in content.lines() {
-            let line = line.trim();
-            if line.is_empty() || line.starts_with('#') {
+            let mut line = line;
+            if let Some(i) = line.find('#') {
+                line = &line[..i];
+            }
+            line = line.trim();
+            if line.is_empty() {
                 continue;
             }
 
@@ -162,7 +166,7 @@ mod tests {
     # Comment 2
 
 X=abc
-    export Y_Y='def'
+    export Y_Y='def' #inline comment
 Z=
 T = "trimmed"
         "#;
