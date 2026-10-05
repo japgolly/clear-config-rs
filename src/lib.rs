@@ -30,7 +30,7 @@ pub enum ReadErrors {
 
 impl Display for ReadErrors {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Config errors:").unwrap();
+        write!(f, "Config errors:")?;
         let sorted: BTreeSet<String> = match self {
             ReadErrors::Source(errs) => errs.iter().map(|e| format!("{}", e.0)).collect(),
             ReadErrors::Read(errs) => errs
@@ -39,7 +39,7 @@ impl Display for ReadErrors {
                 .collect(),
         };
         for s in sorted {
-            write!(f, "\n  * {}", s).unwrap();
+            write!(f, "\n  * {}", s)?;
         }
         Ok(())
     }
