@@ -120,7 +120,7 @@ impl ConfigSource {
         }
     }
 
-    pub fn get(&self, key: &String) -> Option<&String> {
+    pub fn get(&self, key: &str) -> Option<&String> {
         self.data.as_ref().ok().and_then(|m| m.get(key))
     }
 }
