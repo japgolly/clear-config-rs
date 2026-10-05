@@ -58,12 +58,8 @@ impl ConfigSource {
         let mut errors = Vec::new();
         let mut map = HashMap::new();
         for line in content.lines() {
-            let mut line = line;
-            if let Some(i) = line.find('#') {
-                line = &line[..i];
-            }
-            line = line.trim();
-            if line.is_empty() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
                 continue;
             }
 
@@ -88,12 +84,43 @@ impl ConfigSource {
                 continue;
             }
 
-            let mut value = line[i + 1..].trim();
-            if value.len() >= 2
-                && ((value.starts_with('"') && value.ends_with('"'))
-                    || (value.starts_with('\'') && value.ends_with('\'')))
-            {
-                value = &value[1..value.len() - 1];
+            let raw_value = line[i + 1..].trim();
+            let mut quote_char = None;
+            let mut whitespace = String::new();
+            let mut value = String::new();
+            for c in raw_value.chars() {
+                match quote_char {
+                    None => {
+                        if c == '#' {
+                            break;
+                        };
+                        if c.is_whitespace() {
+                            whitespace.push(c);
+                            continue;
+                        };
+                        if !whitespace.is_empty() {
+                            value.push_str(&whitespace);
+                            whitespace.clear();
+                        }
+                        if c == '"' || c == '\'' {
+                            quote_char = Some(c);
+                            continue;
+                        };
+                    }
+                    Some(q) => {
+                        if c == q {
+                            quote_char = None;
+                            continue;
+                        };
+                    }
+                };
+                value.push(c);
+            }
+            if quote_char.is_some() {
+                errors.push(SourceError(ErrorMsg(
+                    format!("{}: Invalid line: {}", name, line).to_string(),
+                )));
+                continue;
             }
 
             map.insert(key.to_string(), value.to_string());
@@ -165,15 +192,21 @@ mod tests {
 # Comment 1
     # Comment 2
 
-X=abc
-    export Y_Y='def' #inline comment
+X1=abc #inline comment
+X2=abc def#inline comment
+    export Y_Y='de#f' #inline comment
 Z=
+W1='  ' #whitespace
+W2='  ' x #whitespace
 T = "trimmed"
         "#;
         let mut expect = HashMap::new();
-        expect.insert("X".to_string(), "abc".to_string());
-        expect.insert("Y_Y".to_string(), "def".to_string());
+        expect.insert("X1".to_string(), "abc".to_string());
+        expect.insert("X2".to_string(), "abc def".to_string());
+        expect.insert("Y_Y".to_string(), "de#f".to_string());
         expect.insert("Z".to_string(), "".to_string());
+        expect.insert("W1".to_string(), "  ".to_string());
+        expect.insert("W2".to_string(), "   x".to_string());
         expect.insert("T".to_string(), "trimmed".to_string());
         let name = ".env";
         let src = ConfigSource::env_file_content(name, content);
@@ -191,6 +224,7 @@ T = "trimmed"
         let content = r"
 # Comment
 
+Q='unterminated
 X=abc
 Y_Y
 Z Z=invalid
@@ -204,6 +238,7 @@ Z Z=invalid
             ConfigSource {
                 name: name.to_string(),
                 data: Err(vec![
+                    SourceError(ErrorMsg(".env: Invalid line: Q='unterminated".to_string())),
                     SourceError(ErrorMsg(".env: Invalid line: Y_Y".to_string())),
                     SourceError(ErrorMsg(".env: Invalid line: Z Z=invalid".to_string())),
                     SourceError(ErrorMsg(".env: Invalid line: =def".to_string())),
