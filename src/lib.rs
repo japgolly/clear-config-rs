@@ -1,3 +1,32 @@
+//! Clear Config is a lightweight configuration loading and reporting library for Rust.
+//!
+//! # Overview
+//!
+//! - Declare configuration structs with `#[derive(ConfigReader)]`.
+//! - Derive enum and newtype parsers with `#[derive(ConfigParser)]`.
+//! - Read from environment variables, `.env` files, or in-memory sources.
+//! - Generate clear ASCII report tables showing what keys were loaded from where,
+//!   with sensitive keys (passwords, tokens) automatically obfuscated.
+//!
+//! # Example
+//!
+//! ```rust
+//! use clear_config::*;
+//!
+//! #[derive(ConfigReader, Debug)]
+//! struct AppConfig {
+//!     #[config(default = "8080")]
+//!     port: u16,
+//! }
+//!
+//! let mut ctx = ConfigContext::default();
+//! let result = ctx.read::<AppConfig>();
+//! println!("{}", ctx.report_used());
+//! match result {
+//!     Ok(cfg) => println!("{:?}", cfg),
+//!     Err(e) => println!("{}", e),
+//! }
+//! ```
 extern crate self as clear_config;
 
 mod parsing;
@@ -10,21 +39,33 @@ pub use clear_config_derive::{ConfigParser, ConfigReader};
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::{Debug, Display};
 
+/// A trait for types that can be read from a [`ConfigContext`].
+///
+/// This trait is usually derived using `#[derive(ConfigReader)]` on named structs.
 pub trait ConfigReader {
+    /// Reads and constructs `Self` using the provided [`ConfigContext`].
+    ///
+    /// Returns `Some(Self)` on success, or `None` if any field failed to read or parse.
     fn read(ctx: &mut ConfigContext) -> Option<Self>
     where
         Self: Sized;
 }
 
+/// An error that occurred while reading or parsing a specific configuration key.
 #[derive(Clone, Debug)]
 pub struct ReadError {
+    /// The full configuration key name that failed.
     pub key: String,
+    /// The message explaining why reading or parsing failed.
     pub msg: ErrorMsg,
 }
 
+/// An aggregation of errors encountered when reading configuration.
 #[derive(Clone, Debug)]
 pub enum ReadErrors {
+    /// Errors encountered while loading configuration sources (e.g. missing files or syntax errors).
     Source(Vec<SourceError>),
+    /// Errors encountered while reading or parsing individual configuration keys.
     Read(Vec<ReadError>),
 }
 
@@ -47,7 +88,12 @@ impl Display for ReadErrors {
 
 impl std::error::Error for ReadErrors {}
 
+/// Execution context for reading configuration and generating usage reports.
+///
+/// Tracks loaded sources, records inspected keys and defaults, registers secret keys,
+/// and accumulates read errors.
 pub struct ConfigContext {
+    /// The list of configuration sources, checked in order of priority.
     pub sources: Vec<ConfigSource>,
     secret_keys_lowercase: HashSet<String>,
     secret_keywords_lowercase: HashSet<String>,
@@ -63,6 +109,7 @@ impl Default for ConfigContext {
 }
 
 impl ConfigContext {
+    /// Creates a new `ConfigContext` with the specified configuration sources.
     pub fn new(sources: Vec<ConfigSource>) -> Self {
         let mut secret_keywords_lowercase = HashSet::new();
         secret_keywords_lowercase.insert("password".to_string());
@@ -77,6 +124,9 @@ impl ConfigContext {
         }
     }
 
+    /// Executes a function with a temporary key prefix prepended to all lookups.
+    ///
+    /// After the function finishes, the previous prefix state is restored.
     pub fn with_key_prefix<R>(&mut self, prefix: &str, f: impl FnOnce(&mut Self) -> R) -> R {
         if prefix.is_empty() {
             f(self)
@@ -97,16 +147,22 @@ impl ConfigContext {
         }
     }
 
+    /// Marks a specific configuration key (case-insensitive) as secret, masking its value in reports.
     pub fn add_secret_key(&mut self, k: &str) {
         self.secret_keys_lowercase
             .insert(self.full_key(k).to_ascii_lowercase());
     }
 
+    /// Marks any key containing the given keyword (case-insensitive) as secret.
     pub fn add_secret_keyword(&mut self, kw: &str) {
         self.secret_keywords_lowercase
             .insert(kw.to_ascii_lowercase());
     }
 
+    /// Reads and populates a configuration structure implementing [`ConfigReader`].
+    ///
+    /// First checks all sources for loading errors; if any source errored, returns [`ReadErrors::Source`].
+    /// Otherwise, calls [`ConfigReader::read`] and returns [`ReadErrors::Read`] on missing or invalid keys.
     pub fn read<A: ConfigReader>(&mut self) -> Result<A, ReadErrors> {
         // 1. Check all sources for errors
         let source_errors: Vec<SourceError> = self
@@ -141,10 +197,16 @@ impl ConfigContext {
         }
     }
 
+    /// Reads an optional configuration key.
+    ///
+    /// Returns `Some(Some(val))` if present and parsed successfully, `Some(None)` if not set,
+    /// or `None` if parsing failed.
     pub fn get<A: ConfigParser>(&mut self, key: &str) -> Option<Option<A>> {
         self.lookup(key, Some("None".to_string()))
     }
 
+    /// Reads a configuration key, falling back to the provided default value if absent.
+    /// Returns `None` if parsing failed.
     pub fn get_or_use<A: ConfigParser + Debug>(&mut self, key: &str, default: A) -> Option<A> {
         match self.lookup(key, Some(format!("{:?}", default))) {
             Some(Some(a)) => Some(a),
@@ -153,6 +215,8 @@ impl ConfigContext {
         }
     }
 
+    /// Reads a configuration key, parsing the provided default string if the key is absent.
+    /// Returns `None` if parsing failed.
     pub fn get_or_parse<A: ConfigParser>(&mut self, key: &str, default: &str) -> Option<A> {
         match self.lookup(key, Some(default.to_string())) {
             Some(Some(a)) => Some(a),
@@ -170,6 +234,7 @@ impl ConfigContext {
         }
     }
 
+    /// Reads a required configuration key, recording an error if absent or invalid.
     pub fn need<A: ConfigParser>(&mut self, key: &str) -> Option<A> {
         match self.lookup(key, None) {
             Some(Some(a)) => Some(a),
@@ -184,6 +249,8 @@ impl ConfigContext {
         }
     }
 
+    /// Generates a formatted ASCII table showing all inspected keys, their values across sources,
+    /// and any defaults applied, with sensitive values obfuscated.
     pub fn report_used(&self) -> String {
         use ascii_table_rs::{AsciiTable, CellValue};
 

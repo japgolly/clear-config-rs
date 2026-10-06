@@ -2,6 +2,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::path::PathBuf;
 use std::time::Duration;
 
+/// An error message.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ErrorMsg(pub String);
 
@@ -13,7 +14,39 @@ impl std::fmt::Display for ErrorMsg {
 
 impl std::error::Error for ErrorMsg {}
 
+/// A trait for types that can be parsed from a configuration string.
+///
+/// Built-in implementations are provided for:
+/// - Primitives: [`String`], [`bool`], integers (`u8`–`u128`, `i8`–`i128`, `usize`, `isize`), floats (`f32`, `f64`), [`char`]
+/// - Networking: [`IpAddr`](std::net::IpAddr), [`Ipv4Addr`](std::net::Ipv4Addr), [`Ipv6Addr`](std::net::Ipv6Addr), [`SocketAddr`](std::net::SocketAddr)
+/// - System types: [`PathBuf`](std::path::PathBuf), [`Duration`](std::time::Duration)
+/// - Collections: [`Vec<T>`](Vec) (comma-separated values)
+///
+/// # Deriving
+///
+/// `ConfigParser` can be automatically derived for:
+/// - **Enums**: Variant names are matched case-insensitively, with optional `#[config(rename = "...")]` overrides.
+/// - **Single unnamed field structs** (newtypes): Delegates parsing to the inner type.
+///
+/// ```
+/// use clear_config::ConfigParser;
+///
+/// #[derive(ConfigParser, Debug, PartialEq)]
+/// enum Environment {
+///     Dev,
+///     #[config(rename = "Prod")]
+///     Production,
+/// }
+///
+/// #[derive(ConfigParser, Debug, PartialEq)]
+/// struct Port(u16);
+///
+/// assert_eq!(Environment::parse_config("dev"), Ok(Environment::Dev));
+/// assert_eq!(Environment::parse_config("prod"), Ok(Environment::Production));
+/// assert_eq!(Port::parse_config("8080"), Ok(Port(8080)));
+/// ```
 pub trait ConfigParser: Sized {
+    /// Parses an instance of `Self` from the given string `s`.
     fn parse_config(s: &str) -> Result<Self, ErrorMsg>;
 }
 

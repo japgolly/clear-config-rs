@@ -2,6 +2,37 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{Data, DataEnum, DataStruct, DeriveInput, Fields, parse_macro_input};
 
+/// Derives the `ConfigParser` trait for enums or single-field unnamed structs.
+///
+/// # Supported Targets
+///
+/// 1. **Unit Enums**:
+///    - Variant names are matched case-insensitively (e.g. `"dev"`, `"Dev"`, `"DEV"` match `Dev`).
+///    - Variants can be renamed using `#[config(rename = "...")]`.
+///
+///    ```rust
+///    #[derive(ConfigParser)]
+///    enum Environment {
+///        Dev,
+///        Staging,
+///        #[config(rename = "Prod")]
+///        Production,
+///    }
+///    ```
+///
+/// 2. **Single-Field Unnamed Structs (Newtypes)**:
+///    - Delegates parsing directly to the inner type via `<T>::parse_config(s).map(Self)`.
+///    - Automatically adds `T: ConfigParser` trait bounds for generic parameters.
+///
+///    ```rust
+///    #[derive(ConfigParser)]
+///    struct Port(u16);
+///
+///    #[derive(ConfigParser)]
+///    struct Wrapper<T>(T);
+///    ```
+///
+/// Structs with named fields or more/fewer than 1 field are rejected.
 #[proc_macro_derive(ConfigParser, attributes(config))]
 pub fn derive_config_parser(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -170,6 +201,47 @@ fn derive_config_parser_struct(
     Ok(expanded)
 }
 
+/// Derives the `ConfigReader` trait for named structs.
+///
+/// Automatically generates code to read each field from a `ConfigContext`
+/// using its uppercase field name (or an overridden key name).
+///
+/// # Struct Attributes
+///
+/// - `#[config(key_prefix = "...")]`: Prepends a prefix to all field keys within the struct.
+///   Prefixes compose hierarchically on nested structs.
+///
+/// # Field Attributes
+///
+/// - `#[config(key = "...")]`: Overrides the default lookup key name (default is the field name in `UPPERCASE`).
+/// - `#[config(default = "...")]`: Provides a fallback string value if the key is not set. Parsed via `ConfigParser`.
+/// - `#[config(key_prefix = "...")]`: Adds a key prefix specifically for a nested struct field.
+/// - `#[config(secret)]`: Marks the key as sensitive, masking its value in `report_used`.
+///
+/// # Field Types
+///
+/// - **Required fields (`T: ConfigParser`)**: Looked up via `ctx.need("KEY")` (or `ctx.get_or_parse` if `default` is specified).
+/// - **Optional fields (`Option<T>`)**: Looked up via `ctx.get("KEY")`. Defaults to `None` if missing.
+/// - **Nested configs (`T: ConfigReader`)**: Recursively loaded with `T::read(ctx)`, respecting nested prefixes.
+///
+/// # Example
+///
+/// ```rust
+/// #[derive(ConfigReader)]
+/// #[config(key_prefix = "APP_")]
+/// struct AppConfig {
+///     #[config(key = "DEBUG_MODE", default = "false")]
+///     debug: bool,
+///
+///     #[config(secret)]
+///     api_token: String,
+///
+///     log_level: Option<String>,
+///
+///     #[config(key_prefix = "DB_")]
+///     database: DatabaseConfig,
+/// }
+/// ```
 #[proc_macro_derive(ConfigReader, attributes(config))]
 pub fn derive_config_def(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

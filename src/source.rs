@@ -4,6 +4,7 @@ use std::path::Path;
 
 use crate::ErrorMsg;
 
+/// An error that occurred while loading or parsing a [`ConfigSource`].
 #[derive(Clone, Debug, PartialEq)]
 pub struct SourceError(pub ErrorMsg);
 
@@ -15,13 +16,19 @@ impl std::fmt::Display for SourceError {
 
 impl std::error::Error for SourceError {}
 
+/// A named source of key-value configuration pairs (e.g. environment variables or `.env` files).
+///
+/// Sources are queried sequentially by [`ConfigContext`](crate::ConfigContext) to look up configuration keys.
 #[derive(Debug, PartialEq)]
 pub struct ConfigSource {
+    /// The display name of this source, used in reports and error messages.
     pub name: String,
+    /// The key-value pairs loaded from this source, or errors encountered while loading it.
     pub data: Result<HashMap<String, String>, Vec<SourceError>>,
 }
 
 impl ConfigSource {
+    /// Creates a configuration source that reads from the process's environment variables.
     pub fn env() -> Self {
         ConfigSource {
             name: String::from("Environment"),
@@ -29,6 +36,10 @@ impl ConfigSource {
         }
     }
 
+    /// Loads a configuration source from an environment file at the specified path.
+    ///
+    /// If `mandatory` is `false` and the file does not exist, an empty source is returned.
+    /// If `mandatory` is `true` and the file cannot be read, an error is recorded.
     pub fn env_file(filename: impl AsRef<Path>, mandatory: bool) -> Self {
         match filename.as_ref().to_str() {
             None => {
@@ -54,6 +65,13 @@ impl ConfigSource {
         }
     }
 
+    /// Parses `.env`-formatted text content into a [`ConfigSource`].
+    ///
+    /// Supports:
+    /// - `KEY=value` and `export KEY=value` declarations
+    /// - Quoted values (`"..."` and `'...'`) with escape sequences (`\n`, `\r`, `\t`, `\"`)
+    /// - Comments (`# ...`) at the start of lines or after values
+    /// - Rejects keys containing whitespace or lines missing `=`
     pub fn env_file_content(name: &str, content: &str) -> Self {
         let mut errors = Vec::new();
         let mut map = HashMap::new();
@@ -155,6 +173,9 @@ impl ConfigSource {
         }
     }
 
+    /// Creates an in-memory configuration source from an iterator of key-value pairs.
+    ///
+    /// Useful for testing, mocks, or programmatically supplied overrides.
     pub fn in_memory<K, V, I>(name: &str, entries: I) -> Self
     where
         K: Into<String>,
@@ -170,6 +191,8 @@ impl ConfigSource {
         }
     }
 
+    /// Retrieves the value associated with `key`, or `None` if the key is not present
+    /// or if this source failed to load.
     pub fn get(&self, key: &str) -> Option<&String> {
         self.data.as_ref().ok().and_then(|m| m.get(key))
     }
