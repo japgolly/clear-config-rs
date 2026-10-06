@@ -98,6 +98,15 @@ fn derive_config_parser_struct(
     input: &DeriveInput,
     data_struct: &DataStruct,
 ) -> Result<proc_macro2::TokenStream, syn::Error> {
+    for attr in &input.attrs {
+        if attr.path().is_ident("config") {
+            return Err(syn::Error::new_spanned(
+                attr,
+                "unrecognized config attribute on struct",
+            ));
+        }
+    }
+
     let name = &input.ident;
 
     let field = match &data_struct.fields {
@@ -124,6 +133,15 @@ fn derive_config_parser_struct(
         }
         Fields::Unnamed(fields) => fields.unnamed.first().unwrap(),
     };
+
+    for attr in &field.attrs {
+        if attr.path().is_ident("config") {
+            return Err(syn::Error::new_spanned(
+                attr,
+                "unrecognized config attribute on struct field",
+            ));
+        }
+    }
 
     let inner_ty = &field.ty;
 
