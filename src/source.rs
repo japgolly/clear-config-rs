@@ -76,7 +76,10 @@ impl ConfigSource {
             let i = i.unwrap();
 
             let key = line[..i].trim();
-            let key = key.strip_prefix("export ").map(|s| s.trim()).unwrap_or(key);
+            let key = match key.strip_prefix("export") {
+                Some(tail) if tail.starts_with(|c: char| c.is_whitespace()) => tail.trim(),
+                _ => key,
+            };
             if key.chars().any(|c| c.is_whitespace()) {
                 errors.push(SourceError(ErrorMsg(
                     format!("{}: Invalid line: {}", name, line).to_string(),
@@ -217,6 +220,7 @@ W2='  ' x #whitespace
 T = "trimmed"
 E1="escape ' \" \\ \n"
 E2='escape " \" \\ \n'
+export_var=blah
         "#;
         let mut expect = HashMap::new();
         expect.insert("X1".to_string(), "abc".to_string());
@@ -228,6 +232,7 @@ E2='escape " \" \\ \n'
         expect.insert("T".to_string(), "trimmed".to_string());
         expect.insert("E1".to_string(), "escape ' \" \\ \n".to_string());
         expect.insert("E2".to_string(), r#"escape " \" \\ \n"#.to_string());
+        expect.insert("export_var".to_string(), "blah".to_string());
         let name = ".env";
         let src = ConfigSource::env_file_content(name, content);
         assert_eq!(
