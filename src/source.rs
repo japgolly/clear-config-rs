@@ -76,7 +76,7 @@ impl ConfigSource {
             let i = i.unwrap();
 
             let key = line[..i].trim();
-            let key = key.strip_prefix("export ").unwrap_or(key).trim();
+            let key = key.strip_prefix("export ").map(|s| s.trim()).unwrap_or(key);
             if key.chars().any(|c| c.is_whitespace()) {
                 errors.push(SourceError(ErrorMsg(
                     format!("{}: Invalid line: {}", name, line).to_string(),
@@ -210,7 +210,7 @@ mod tests {
 
 X1=abc #inline comment
 X2 = abc def#inline comment
-    export Y_Y='de#f' #inline comment
+    export  Y_Y='de#f' #inline comment
 Z=
 W1='  ' #whitespace
 W2='  ' x #whitespace
